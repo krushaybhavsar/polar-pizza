@@ -12,6 +12,8 @@ class PolarPizza:
         self.temp_n = random.randint(2, 8)
         # images
         self.grass_bg = pygame.image.load('images/grass.jpg')
+        self.house_img = pygame.transform.scale(pygame.image.load('images/house.png'), (60, 60))
+        self.pizza_shop = pygame.transform.scale(pygame.image.load('images/pizza-shop.png'), (90, 90))
 
     def run(self):
         while self.running:
@@ -36,6 +38,7 @@ class PolarPizza:
     def draw_screen(self):
         self.screen.blit(self.grass_bg, (0, 0))
         self.draw_delivery_path()
+        self.screen.blit(self.pizza_shop, (WIDTH//2 - self.pizza_shop.get_width()//2, HEIGHT//2 - self.pizza_shop.get_height()//2))
         pygame.display.update()
 
     def get_r(self, theta, scale):
@@ -48,6 +51,7 @@ class PolarPizza:
         r = 0
         x = 0
         y = 0
+        petal_tips = []
 
         # find path scale factor
         while theta < 2 * math.pi:
@@ -63,13 +67,23 @@ class PolarPizza:
         theta = 0
         ps *= 0.75 # scale down to 75% of max size
 
-        # draw path
+        # draw path, then houses
         while theta < 2 * math.pi:
             r = self.get_r(theta, ps)
             x = r * math.cos(theta)
             y = r * math.sin(theta)
-            pygame.draw.circle(self.screen, RED, (x + WIDTH//2, y + HEIGHT//2), PATH_STROKE_WIDTH)
+            if abs(abs(r) - ps) < PETAL_TIP_ERROR:
+                petal_tips.append((x + WIDTH//2, y + HEIGHT//2))
+                # pygame.draw.circle(self.screen, BLACK, (int(x + WIDTH//2), int(y + HEIGHT//2)), 10)
+                # self.screen.blit(self.house_img, (int(x + WIDTH//2 - self.house_img.get_width()//2), int(y + HEIGHT//2 - self.house_img.get_height()//2)))
+            else:
+                pygame.draw.circle(self.screen, PATH_COLOR, (x + WIDTH//2, y + HEIGHT//2), PATH_STROKE_WIDTH)
             theta += (1 / DELIVERY_PATH_RESOLUTION)
+        self.draw_houses(petal_tips)
+
+    def draw_houses(self, petal_tips):
+        for tip in petal_tips:
+            self.screen.blit(self.house_img, (tip[0] - self.house_img.get_width()//2, tip[1] - self.house_img.get_height()//2)) 
         
 
 if __name__ == "__main__":
