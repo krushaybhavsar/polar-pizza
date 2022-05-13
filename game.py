@@ -47,7 +47,7 @@ class PolarPizza:
         t = self.pizza_theta
         r = self.get_r(t, self.graph_scale_factor)
         self.pizza_coordinates = (r * math.cos(t), r * math.sin(t))
-        self.pizza_theta += ((math.pi / 180) * 0.6)
+        self.pizza_theta = (self.pizza_theta % (2 * math.pi)) + (math.pi / 180)
 
     # this mess doesnt work lol
     # def get_pizza_increment(self, t):
