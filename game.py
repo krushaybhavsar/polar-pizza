@@ -1,6 +1,6 @@
-from matplotlib.pyplot import get
 import pygame, sys, math, random
 from settings import *
+import pygame_textinput
 
 class PolarPizza:
 
@@ -20,11 +20,17 @@ class PolarPizza:
         # pizza
         self.pizza_theta = 0.0
         self.pizza_coordinates = (0, 0)
+        self.pizza_moving = False
         # images
         self.grass_bg = pygame.image.load('images/grass.jpg')
-        self.house_img = pygame.transform.scale(pygame.image.load('images/house.png'), (60, 60))
+        self.house_img = pygame.transform.scale(pygame.image.load('images/house.png'), (55, 55))
         self.pizza_img = pygame.transform.scale(pygame.image.load('images/pizza.png'), (40, 40))
-        self.pizza_shop = pygame.transform.scale(pygame.image.load('images/pizza-shop.png'), (90, 90))
+        self.pizza_shop = pygame.transform.scale(pygame.image.load('images/pizza-shop.png'), (80, 80))
+        # fonts
+        self.font = pygame.font.Font("fonts/roboto.ttf", 50)
+        self.font_small = pygame.font.Font("fonts/roboto.ttf", 40)
+        # text input
+        self.textinput = pygame_textinput.TextInputVisualizer(font_object=self.font_small, font_color=INFO_FONT_COLOR, cursor_blink_interval=350, cursor_color=INFO_FONT_COLOR)
 
     def run(self):
         while self.running:
@@ -39,15 +45,18 @@ class PolarPizza:
         sys.exit()
     
     def check_events(self):
-        for event in pygame.event.get():
+        events = pygame.event.get()
+        self.textinput.update(events)
+        for event in events:
             if event.type == pygame.QUIT:
                 self.running = False
 
     def update(self):
         t = self.pizza_theta
         r = self.get_r(t, self.graph_scale_factor)
-        self.pizza_coordinates = (r * math.cos(t), r * math.sin(t))
-        self.pizza_theta = (self.pizza_theta % (2 * math.pi)) + (math.pi / 180)
+        self.pizza_coordinates = (r * math.cos(t) + AXIS_OFFSET[0], r * math.sin(t) + AXIS_OFFSET[1])
+        if (self.pizza_moving):
+            self.pizza_theta = (self.pizza_theta % (2 * math.pi)) + (math.pi / 180)
 
     # this mess doesnt work lol
     # def get_pizza_increment(self, t):
@@ -68,9 +77,11 @@ class PolarPizza:
     def draw_screen(self):
         self.screen.blit(self.grass_bg, (0, 0))
         self.draw_delivery_path()
-        self.draw_houses()
-        self.screen.blit(self.pizza_shop, (WIDTH//2 - self.pizza_shop.get_width()//2, HEIGHT//2 - self.pizza_shop.get_height()//2))
         self.draw_pizza()
+        self.draw_houses()
+        self.screen.blit(self.pizza_shop, (WIDTH//2 - self.pizza_shop.get_width()//2 + AXIS_OFFSET[0], HEIGHT//2 - self.pizza_shop.get_height()//2 + AXIS_OFFSET[1]))
+        self.draw_delivery_info()
+        self.draw_answer_box()
         pygame.display.update()
 
     def get_r(self, theta, scale):
@@ -78,6 +89,9 @@ class PolarPizza:
             return scale * math.cos(self.petal_num * theta)
         elif self.equation_type == 'sin':
             return scale * math.sin(self.petal_num * theta)
+    
+    def get_equation_string(self):
+        return f"r = {self.graph_scale_factor}∙{self.equation_type}({self.petal_num}θ)"
 
     def draw_delivery_path(self):
         ps = MAX_PATH_SCALE
@@ -97,7 +111,7 @@ class PolarPizza:
                 y = r * math.sin(theta)
             theta += math.pi / 180
         theta = 0
-        self.graph_scale_factor = 0.75 * ps # scale down to 75% of max size
+        self.graph_scale_factor = round(0.6 * ps) # scale down to 60% of max size
 
         # draw path, then houses
         while theta < 2 * math.pi:
@@ -105,10 +119,10 @@ class PolarPizza:
             x = r * math.cos(theta)
             y = r * math.sin(theta)
             if abs(abs(r) - self.graph_scale_factor) < PETAL_TIP_ERROR and len(self.delivery_house_points) < HOUSE_THRESHOLD: # add to list of houses if point is tip of petal
-                self.delivery_house_points.append((x + WIDTH//2, y + HEIGHT//2))
+                self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
                 pass
             else:
-                pygame.draw.circle(self.screen, PATH_COLOR, (x + WIDTH//2, y + HEIGHT//2), PATH_STROKE_WIDTH)
+                pygame.draw.circle(self.screen, PATH_COLOR, (x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]), PATH_STROKE_WIDTH)
             theta += (1 / DELIVERY_PATH_RESOLUTION)
 
     def draw_houses(self):
@@ -117,8 +131,15 @@ class PolarPizza:
 
     def draw_pizza(self):
         self.screen.blit(self.pizza_img, (self.pizza_coordinates[0] + WIDTH//2 - self.pizza_img.get_width()//2, self.pizza_coordinates[1] + HEIGHT//2 - self.pizza_img.get_height()//2))
-        
+
+    def draw_delivery_info(self):
+        self.screen.blit(self.font.render(self.get_equation_string(), True, INFO_FONT_COLOR), (40, 30))
+
+    def draw_answer_box(self):
+        pygame.draw.rect(self.screen, AB_BG_COLOR, (0 + AB_HORIZONTAL_PADDING, HEIGHT - AB_HEIGHT, WIDTH - 2*AB_HORIZONTAL_PADDING, AB_HEIGHT), border_top_left_radius=AB_BORDER_RADIUS, border_top_right_radius=AB_BORDER_RADIUS)
+        self.screen.blit(self.textinput.surface, (AB_HORIZONTAL_PADDING + 45, HEIGHT - self.textinput.surface.get_height() - 32))
 
 if __name__ == "__main__":
+    pygame.init()
     game = PolarPizza()
     game.run()
