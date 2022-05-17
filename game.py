@@ -1,4 +1,3 @@
-from cmath import pi
 import pygame, sys, math, random
 from settings import *
 import numpy as np
@@ -20,7 +19,6 @@ class PolarPizza:
         self.equation_type = random.choice(['cos', 'sin', 'limacon-cos', 'limacon-sin'])#, 'lemniscate-cos', 'lemniscate-sin'])
         # self.equation_type = 'limacon-sin'
         self.equation_sign = np.random.choice([-1, 1])
-        self.period = 2 * pi
         self.graph_scale_factor = MAX_PATH_SCALE
         self.delivery_house_points = []
         # pizza
@@ -45,6 +43,8 @@ class PolarPizza:
         self.question = "Find the time it takes to deliver the pizza to every house."
         self.units = " minutes"
         self.check_btn_hover = False
+
+        self.define_graph()
 
 
     def run(self):
@@ -91,7 +91,7 @@ class PolarPizza:
         self.draw_answer_box()
         pygame.display.update()
 
-    def get_r(self, theta, scale):
+    def get_r(self, theta, scale, output=False):
         if self.equation_type == 'cos':
             return scale * math.cos(self.petal_num * theta)
         elif self.equation_type == 'sin':
@@ -115,17 +115,16 @@ class PolarPizza:
             else:
                 return f"r = {self.graph_scale_factor}∙({self.constants[0]} - {self.constants[1]}∙{self.equation_type[-3:]}(θ))"
 
-    def draw_delivery_path(self):
-        ps = MAX_PATH_SCALE
-        theta = 0
-        r = 0
-        x = 0
-        y = 0
-        # find path scale factor
-
+    def define_graph(self):
         if 'cos' == self.equation_type or 'sin' == self.equation_type:
             ps = min(WIDTH//2, HEIGHT//2)
-
+            if self.petal_num % 2 == 0:
+                num_petals = self.petal_num * 2
+                house_period = 2 * math.pi / num_petals
+            else:
+                num_petals = self.petal_num
+                house_period = math.pi / num_petals
+        
         elif 'limacon-cos' == self.equation_type:
             # y, x-neg, x-pos
             # 3 + 6 cos(theta)
@@ -136,7 +135,6 @@ class PolarPizza:
             else:
                 ps = min((WIDTH//2) // critical_vals[2], (WIDTH//2) // critical_vals[1], (HEIGHT//2) // critical_vals[0])
 
-
         elif 'limacon-sin' == self.equation_type:
             # x, y-neg, y-pos
             # 3 + 6 cos(theta)
@@ -146,6 +144,91 @@ class PolarPizza:
                 ps = min((HEIGHT//2) // critical_vals[2], (WIDTH//2) // critical_vals[0])
             else:
                 ps = min((HEIGHT//2) // critical_vals[2], (HEIGHT//2) // critical_vals[1], (WIDTH//2) // critical_vals[0])
+
+        self.graph_scale_factor = round(0.6 * ps) # scale down to 60% of max size
+
+        if 'cos' == self.equation_type:
+            for i in range(0, num_petals):
+                theta = i * house_period
+                r = self.get_r(theta, self.graph_scale_factor, output=True)
+                x = r * math.cos(theta)
+                y = r * math.sin(theta)
+                self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
+
+        elif 'sin' == self.equation_type:
+            for i in range(num_petals):
+                theta = i * house_period + house_period / 2
+                r = self.get_r(theta, self.graph_scale_factor, output=True)
+                x = r * math.cos(theta)
+                y = r * math.sin(theta)
+                self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
+
+        elif 'limacon-cos' == self.equation_type or 'limacon-sin' == self.equation_type:
+            key_points = [0, math.pi/2, math.pi, 3*math.pi/2]
+            for theta in key_points:
+                r = self.get_r(theta, self.graph_scale_factor)
+                x = r * math.cos(theta)
+                y = r * math.sin(theta)
+                self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
+
+    def draw_delivery_path(self):
+        theta = 0
+        r = 0
+        x = 0
+        y = 0
+        # find path scale factor
+
+        # if 'cos' == self.equation_type or 'sin' == self.equation_type:
+        #     ps = min(WIDTH//2, HEIGHT//2)
+        #     num_petals = self.petal_num * 2 if self.petal_num % 2 == 0 else self.petal_num
+        #     house_period = 2 * math.pi / num_petals
+        #     print(num_petals, house_period)
+        #     for i in range(num_petals):
+        #         theta = i * house_period
+        #         r = self.get_r(theta, self.graph_scale_factor)
+        #         x = r * math.cos(theta)
+        #         y = r * math.sin(theta)
+        #         print(theta, r, x, y)
+        #         self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
+
+        #     print(self.delivery_house_points)
+
+        # elif 'limacon-cos' == self.equation_type:
+        #     # y, x-neg, x-pos
+        #     # 3 + 6 cos(theta)
+        #     critical_vals = list(map(abs, [self.constants[0], self.constants[0] - self.constants[1], self.constants[0] + self.constants[1]]))
+        #     if self.constants[0] == self.constants[1]:
+        #         # Handle Cardioid case
+        #         ps = min((WIDTH//2) // critical_vals[2], (HEIGHT//2) // critical_vals[0])
+        #     else:
+        #         ps = min((WIDTH//2) // critical_vals[2], (WIDTH//2) // critical_vals[1], (HEIGHT//2) // critical_vals[0])
+
+        #     # Calculate Key Points
+
+        #     key_points = [0, math.pi/2, math.pi, 3*math.pi/2]
+        #     for theta in key_points:
+        #         r = self.get_r(theta, self.graph_scale_factor)
+        #         x = r * math.cos(theta)
+        #         y = r * math.sin(theta)
+        #         self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
+
+
+        # elif 'limacon-sin' == self.equation_type:
+        #     # x, y-neg, y-pos
+        #     # 3 + 6 cos(theta)
+        #     critical_vals = list(map(abs, [self.constants[0], self.constants[0] - self.constants[1], self.constants[0] + self.constants[1]]))
+        #     if self.constants[0] == self.constants[1]:
+        #         # Handle Cardioid case
+        #         ps = min((HEIGHT//2) // critical_vals[2], (WIDTH//2) // critical_vals[0])
+        #     else:
+        #         ps = min((HEIGHT//2) // critical_vals[2], (HEIGHT//2) // critical_vals[1], (WIDTH//2) // critical_vals[0])
+
+        #     key_points = [0, math.pi/2, math.pi, 3*math.pi/2]
+        #     for theta in key_points:
+        #         r = self.get_r(theta, self.graph_scale_factor)
+        #         x = r * math.cos(theta)
+        #         y = r * math.sin(theta)
+        #         self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
 
         
         # while theta < 2 * math.pi:
@@ -158,24 +241,25 @@ class PolarPizza:
         #         x = r * math.cos(theta)
         #         y = r * math.sin(theta)
         #     theta += math.pi / 180
-        theta = 0
-        self.graph_scale_factor = round(0.6 * ps) # scale down to 60% of max size
+        # self.graph_scale_factor = round(0.6 * ps) # scale down to 60% of max size
 
         # draw path, then houses
         while theta < 2 * math.pi:
             r = self.get_r(theta, self.graph_scale_factor)
             x = r * math.cos(theta)
             y = r * math.sin(theta)
-            if abs(abs(r) - self.graph_scale_factor) < PETAL_TIP_ERROR and len(self.delivery_house_points) < HOUSE_THRESHOLD: # add to list of houses if point is tip of petal
-                self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
-                pass
-            else:
-                pygame.draw.circle(self.screen, PATH_COLOR, (x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]), PATH_STROKE_WIDTH)
+
+            # if abs(abs(r) - self.graph_scale_factor) < PETAL_TIP_ERROR and len(self.delivery_house_points) < HOUSE_THRESHOLD: # add to list of houses if point is tip of petal
+            #     self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
+            #     pass
+            # else:
+            pygame.draw.circle(self.screen, PATH_COLOR, (x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]), PATH_STROKE_WIDTH)
             theta += (1 / DELIVERY_PATH_RESOLUTION)
 
     def draw_houses(self):
         for tip in self.delivery_house_points:
             self.screen.blit(self.house_img, (tip[0] - self.house_img.get_width()//2, tip[1] - self.house_img.get_height()//2)) 
+        # self.delivery_house_points = []
 
     def draw_pizza(self):
         self.screen.blit(self.pizza_img, (self.pizza_coordinates[0] + WIDTH//2 - self.pizza_img.get_width()//2, self.pizza_coordinates[1] + HEIGHT//2 - self.pizza_img.get_height()//2))
@@ -207,6 +291,7 @@ class PolarPizza:
             self.check_btn_hover = False
         pygame.draw.rect(self.screen, btn_color, (check_btn_coordinates[0], check_btn_coordinates[1], CHECK_BUTTON_WIDTH, CHECK_BUTTON_HEIGHT), border_top_left_radius=CB_BR, border_top_right_radius=CB_BR, border_bottom_left_radius=CB_BR, border_bottom_right_radius=CB_BR)
         self.screen.blit(self.font_btn.render("Check", True, font_color), (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH + CHECK_BUTTON_WIDTH//2 - self.font_btn.size("Check")[0]//2 - 40, HEIGHT - AB_HEIGHT//2 - self.font_btn.size("Check")[1]//2))
+
 if __name__ == "__main__":
     pygame.init()
     game = PolarPizza()
