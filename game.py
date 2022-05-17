@@ -1,6 +1,5 @@
-import pygame, sys, math, random
+import pygame, sys, math, random, time
 from settings import *
-import pygame_textinput
 
 class PolarPizza:
 
@@ -12,6 +11,7 @@ class PolarPizza:
         self.clock = pygame.time.Clock()
         self.running = True
         self.state = 'playing'
+        self.mouse_pos = (0, 0)
         # polar graph
         self.petal_num = random.randint(2, 5)
         self.equation_type = random.choice(['cos', 'sin'])
@@ -20,7 +20,7 @@ class PolarPizza:
         # pizza
         self.pizza_theta = 0.0
         self.pizza_coordinates = (0, 0)
-        self.pizza_moving = False
+        self.pizza_moving = True
         # images
         self.grass_bg = pygame.image.load('images/grass.jpg')
         self.house_img = pygame.transform.scale(pygame.image.load('images/house.png'), (55, 55))
@@ -28,9 +28,18 @@ class PolarPizza:
         self.pizza_shop = pygame.transform.scale(pygame.image.load('images/pizza-shop.png'), (80, 80))
         # fonts
         self.font = pygame.font.Font("fonts/roboto.ttf", 50)
-        self.font_small = pygame.font.Font("fonts/roboto.ttf", 40)
-        # text input
-        self.textinput = pygame_textinput.TextInputVisualizer(font_object=self.font_small, font_color=INFO_FONT_COLOR, cursor_blink_interval=350, cursor_color=INFO_FONT_COLOR)
+        self.font_medium = pygame.font.Font("fonts/roboto.ttf", 34)
+        self.font_small = pygame.font.Font("fonts/roboto.ttf", 30)
+        self.font_btn = pygame.font.Font("fonts/roboto.ttf", 32)
+        # answer box
+        self.input_text = ""
+        self.cursor_blink_count = 0
+        self.cursor_blink_state = False
+        self.over_text_limit = False
+        self.question = "Find the time it takes to deliver the pizza to every house."
+        self.units = " minutes"
+        self.check_btn_hover = False
+
 
     def run(self):
         while self.running:
@@ -46,33 +55,25 @@ class PolarPizza:
     
     def check_events(self):
         events = pygame.event.get()
-        self.textinput.update(events)
+        self.mouse_pos = pygame.mouse.get_pos()
         for event in events:
             if event.type == pygame.QUIT:
                 self.running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_BACKSPACE:
+                    self.input_text = self.input_text[:-1]
+                    self.over_text_limit = False
+                # check if key is a number
+                if not self.over_text_limit and (event.key >= pygame.K_0 and event.key <= pygame.K_9):
+                    self.input_text += event.unicode
+
 
     def update(self):
         t = self.pizza_theta
         r = self.get_r(t, self.graph_scale_factor)
         self.pizza_coordinates = (r * math.cos(t) + AXIS_OFFSET[0], r * math.sin(t) + AXIS_OFFSET[1])
         if (self.pizza_moving):
-            self.pizza_theta = (self.pizza_theta % (2 * math.pi)) + (math.pi / 180)
-
-    # this mess doesnt work lol
-    # def get_pizza_increment(self, t):
-    #     x = 0
-    #     y = 0
-    #     if self.equation_type == 'cos':
-    #         # a(-n*sin(nx)cos(x) - cos(nx)sin(x))
-    #         x = self.graph_scale_factor * (-self.petal_num * math.sin(self.petal_num * t) * math.cos(t) - math.cos(self.petal_num * t) * math.sin(t))
-    #         # a(-n*sin(nx)sin(x) + cos(nx)cos(x))
-    #         y = self.graph_scale_factor * (-self.petal_num * math.sin(self.petal_num * t) * math.sin(t) + math.cos(self.petal_num * t) * math.cos(t))
-    #     elif self.equation_type == 'sin':
-    #         # a(n*cos(nx)cos(x) - sin(nx)sin(x))
-    #         x = self.graph_scale_factor * (self.petal_num * math.cos(self.petal_num * t) * math.cos(t) - math.sin(self.petal_num * t) * math.sin(t))
-    #         # a(n*cos(nx)sin(x) + sin(nx)cos(x))
-    #         y = self.graph_scale_factor * (self.petal_num * math.cos(self.petal_num * t) * math.sin(t) + math.sin(self.petal_num * t) * math.cos(t))
-    #     return math.sqrt(x**2 + y**2)
+            self.pizza_theta = (self.pizza_theta + (math.pi / 180)) % (2 * math.pi)
 
     def draw_screen(self):
         self.screen.blit(self.grass_bg, (0, 0))
@@ -137,8 +138,28 @@ class PolarPizza:
 
     def draw_answer_box(self):
         pygame.draw.rect(self.screen, AB_BG_COLOR, (0 + AB_HORIZONTAL_PADDING, HEIGHT - AB_HEIGHT, WIDTH - 2*AB_HORIZONTAL_PADDING, AB_HEIGHT), border_top_left_radius=AB_BORDER_RADIUS, border_top_right_radius=AB_BORDER_RADIUS)
-        self.screen.blit(self.textinput.surface, (AB_HORIZONTAL_PADDING + 45, HEIGHT - self.textinput.surface.get_height() - 32))
-
+        # question
+        self.screen.blit(self.font_small.render(self.question, True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT + 25))
+        # text input
+        self.screen.blit(self.font_medium.render("Answer: " + self.input_text + self.units, True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT + 70))       
+        if self.cursor_blink_count % CURSOR_BLINK_RATE == 0:
+            self.cursor_blink_state = not self.cursor_blink_state
+        self.cursor_blink_count += 1
+        if self.cursor_blink_state:
+            self.screen.blit(self.font_medium.render('|', True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text)[0] + 36, HEIGHT - AB_HEIGHT - 4 + 70))
+        if self.font_medium.size("Answer: " + self.input_text + self.units)[0] + AB_HORIZONTAL_PADDING + 80 > WIDTH - 2*AB_HORIZONTAL_PADDING:
+            self.over_text_limit = True
+        check_btn_coordinates = (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH - 40, HEIGHT - AB_HEIGHT//2 - CHECK_BUTTON_HEIGHT//2)
+        btn_color = CHECK_BUTTON_COLOR
+        font_color = CB_FONT_COLOR
+        if check_btn_coordinates[0] < self.mouse_pos[0] < check_btn_coordinates[0] + CHECK_BUTTON_WIDTH and check_btn_coordinates[1] < self.mouse_pos[1] < check_btn_coordinates[1] + CHECK_BUTTON_HEIGHT:
+            self.check_btn_hover = True
+            btn_color = CHECK_BUTTON_HOVER_COLOR
+            font_color = CB_HOVER_FONT_COLOR
+        else:
+            self.check_btn_hover = False
+        pygame.draw.rect(self.screen, btn_color, (check_btn_coordinates[0], check_btn_coordinates[1], CHECK_BUTTON_WIDTH, CHECK_BUTTON_HEIGHT), border_top_left_radius=CB_BR, border_top_right_radius=CB_BR, border_bottom_left_radius=CB_BR, border_bottom_right_radius=CB_BR)
+        self.screen.blit(self.font_btn.render("Check", True, font_color), (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH + CHECK_BUTTON_WIDTH//2 - self.font_btn.size("Check")[0]//2 - 40, HEIGHT - AB_HEIGHT//2 - self.font_btn.size("Check")[1]//2))
 if __name__ == "__main__":
     pygame.init()
     game = PolarPizza()
