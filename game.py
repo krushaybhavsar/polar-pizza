@@ -1,5 +1,7 @@
-import pygame, sys, math, random, time
+from cmath import pi
+import pygame, sys, math, random
 from settings import *
+import numpy as np
 
 class PolarPizza:
 
@@ -14,7 +16,11 @@ class PolarPizza:
         self.mouse_pos = (0, 0)
         # polar graph
         self.petal_num = random.randint(2, 5)
-        self.equation_type = random.choice(['cos', 'sin'])
+        self.constants = np.random.randint(1, 10, 2)
+        self.equation_type = random.choice(['cos', 'sin', 'limacon-cos', 'limacon-sin'])#, 'lemniscate-cos', 'lemniscate-sin'])
+        # self.equation_type = 'limacon-sin'
+        self.equation_sign = np.random.choice([-1, 1])
+        self.period = 2 * pi
         self.graph_scale_factor = MAX_PATH_SCALE
         self.delivery_house_points = []
         # pizza
@@ -90,9 +96,24 @@ class PolarPizza:
             return scale * math.cos(self.petal_num * theta)
         elif self.equation_type == 'sin':
             return scale * math.sin(self.petal_num * theta)
+        elif self.equation_type == 'limacon-cos':
+            return scale * (self.constants[0] + self.equation_sign * self.constants[1] * math.cos(theta))
+        elif self.equation_type == 'limacon-sin':
+            return scale * (self.constants[0] + self.equation_sign * self.constants[1] * math.sin(theta))
+        # elif self.equation_type == 'lemniscate-cos':
+        #     return scale * (np.sqrt(abs(np.power(self.constants[0], 2) * math.cos(2 * theta))))
+        # elif self.equation_type == 'lemniscate-sin':
+        #     return scale * (np.sqrt(abs(np.power(self.constants[0], 2) * math.sin(2 * theta))))
+            
     
     def get_equation_string(self):
-        return f"r = {self.graph_scale_factor}∙{self.equation_type}({self.petal_num}θ)"
+        if 'cos' == self.equation_type or 'sin' == self.equation_type:
+            return f"r = {self.graph_scale_factor}∙{self.equation_type}({self.petal_num}θ)"
+        elif 'limacon-cos' == self.equation_type or 'limacon-sin' == self.equation_type:
+            if self.equation_sign == 1:
+                return f"r = {self.graph_scale_factor}∙({self.constants[0]} + {self.constants[1]}∙{self.equation_type[-3:]}(θ))"
+            else:
+                return f"r = {self.graph_scale_factor}∙({self.constants[0]} - {self.constants[1]}∙{self.equation_type[-3:]}(θ))"
 
     def draw_delivery_path(self):
         ps = MAX_PATH_SCALE
@@ -101,16 +122,42 @@ class PolarPizza:
         x = 0
         y = 0
         # find path scale factor
-        while theta < 2 * math.pi:
-            r = self.get_r(theta, ps)
-            x = r * math.cos(theta)
-            y = r * math.sin(theta)
-            while x + WIDTH//2 > WIDTH or x + WIDTH//2 < 0 or y + HEIGHT//2 > HEIGHT or y + HEIGHT//2 < 0:
-                ps -= 1
-                r = self.get_r(theta, ps)
-                x = r * math.cos(theta)
-                y = r * math.sin(theta)
-            theta += math.pi / 180
+
+        if 'cos' == self.equation_type or 'sin' == self.equation_type:
+            ps = min(WIDTH//2, HEIGHT//2)
+
+        elif 'limacon-cos' == self.equation_type:
+            # y, x-neg, x-pos
+            # 3 + 6 cos(theta)
+            critical_vals = list(map(abs, [self.constants[0], self.constants[0] - self.constants[1], self.constants[0] + self.constants[1]]))
+            if self.constants[0] == self.constants[1]:
+                # Handle Cardioid case
+                ps = min((WIDTH//2) // critical_vals[2], (HEIGHT//2) // critical_vals[0])
+            else:
+                ps = min((WIDTH//2) // critical_vals[2], (WIDTH//2) // critical_vals[1], (HEIGHT//2) // critical_vals[0])
+
+
+        elif 'limacon-sin' == self.equation_type:
+            # x, y-neg, y-pos
+            # 3 + 6 cos(theta)
+            critical_vals = list(map(abs, [self.constants[0], self.constants[0] - self.constants[1], self.constants[0] + self.constants[1]]))
+            if self.constants[0] == self.constants[1]:
+                # Handle Cardioid case
+                ps = min((HEIGHT//2) // critical_vals[2], (WIDTH//2) // critical_vals[0])
+            else:
+                ps = min((HEIGHT//2) // critical_vals[2], (HEIGHT//2) // critical_vals[1], (WIDTH//2) // critical_vals[0])
+
+        
+        # while theta < 2 * math.pi:
+        #     r = self.get_r(theta, ps)
+        #     x = r * math.cos(theta)
+        #     y = r * math.sin(theta)
+        #     while x + WIDTH//2 > WIDTH or x + WIDTH//2 < 0 or y + HEIGHT//2 > HEIGHT or y + HEIGHT//2 < 0:
+        #         ps -= 1
+        #         r = self.get_r(theta, ps)
+        #         x = r * math.cos(theta)
+        #         y = r * math.sin(theta)
+        #     theta += math.pi / 180
         theta = 0
         self.graph_scale_factor = round(0.6 * ps) # scale down to 60% of max size
 
