@@ -83,7 +83,7 @@ class PolarPizza:
         if self.pizza_moving and self.pizza_theta < 2 * math.pi:
             t = self.pizza_theta
             r = self.get_r(t, self.graph_scale_factor)
-            self.pizza_coordinates = (r * math.cos(t) + AXIS_OFFSET[0], r * math.sin(t) + AXIS_OFFSET[1])
+            self.pizza_coordinates = (r * math.cos(t) + AXIS_OFFSET[0], -(r * math.sin(t)) + AXIS_OFFSET[1])
             self.pizza_theta = self.pizza_theta + (math.pi / 180)
 
     def draw_screen(self):
@@ -161,7 +161,7 @@ class PolarPizza:
                 theta = i * house_period
                 r = self.get_r(theta, self.graph_scale_factor)
                 x = r * math.cos(theta)
-                y = r * math.sin(theta)
+                y = -r * math.sin(theta)
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
 
         elif 'sin' == self.equation_type:
@@ -169,7 +169,7 @@ class PolarPizza:
                 theta = i * house_period + house_period / 2
                 r = self.get_r(theta, self.graph_scale_factor)
                 x = r * math.cos(theta)
-                y = r * math.sin(theta)
+                y = -r * math.sin(theta)
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
 
         elif 'limacon-cos' == self.equation_type or 'limacon-sin' == self.equation_type:
@@ -177,7 +177,7 @@ class PolarPizza:
             for theta in key_points:
                 r = self.get_r(theta, self.graph_scale_factor)
                 x = r * math.cos(theta)
-                y = r * math.sin(theta)
+                y = -r * math.sin(theta)
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
 
     def draw_delivery_path(self):
@@ -256,7 +256,7 @@ class PolarPizza:
         while theta < 2 * math.pi:
             r = self.get_r(theta, self.graph_scale_factor)
             x = r * math.cos(theta)
-            y = r * math.sin(theta)
+            y = -r * math.sin(theta)
 
             # if abs(abs(r) - self.graph_scale_factor) < PETAL_TIP_ERROR and len(self.delivery_house_points) < HOUSE_THRESHOLD: # add to list of houses if point is tip of petal
             #     self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
