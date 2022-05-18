@@ -1,6 +1,7 @@
 import pygame, sys, math, random
 from settings import *
 import numpy as np
+import sympy as sym
 
 class PolarPizza:
 
@@ -46,7 +47,12 @@ class PolarPizza:
         self.question_type = "houses"
         self.check_btn_hover = False
 
+        # equation
+        self.t = sym.Symbol('t', real=True, nonnegative=True)
+
         self.define_graph()
+        # self.generate_velocity()
+        self.generate_time_bounds()
 
     def run(self):
         while self.running:
@@ -124,34 +130,39 @@ class PolarPizza:
         if 'cos' == self.equation_type:
             ps = min(WIDTH//2, HEIGHT//2)
             if self.petal_num % 2 == 0:
+                self.period = 2 * math.pi
                 num_petals = self.petal_num * 2
                 house_period = 2 * math.pi / num_petals
                 self.initial_pizza_theta = house_period / 2
-                self.pizza_max_theta = self.initial_pizza_theta + (2 * math.pi)
+                self.pizza_max_theta = self.initial_pizza_theta + self.period
             else:
+                self.period = math.pi
                 num_petals = self.petal_num
                 house_period = math.pi / num_petals
                 self.initial_pizza_theta = house_period / 2
-                self.pizza_max_theta = self.initial_pizza_theta + math.pi
+                self.pizza_max_theta = self.initial_pizza_theta + self.period
         
         if 'sin' == self.equation_type:
             ps = min(WIDTH//2, HEIGHT//2)
             if self.petal_num % 2 == 0:
+                self.period = 2 * math.pi
                 num_petals = self.petal_num * 2
                 house_period = 2 * math.pi / num_petals
                 self.initial_pizza_theta = 0
-                self.pizza_max_theta = self.initial_pizza_theta + (2 * math.pi)
+                self.pizza_max_theta = self.initial_pizza_theta + self.period
             else:
+                self.period = math.pi
                 num_petals = self.petal_num
                 house_period = math.pi / num_petals
                 self.initial_pizza_theta = 0
-                self.pizza_max_theta = self.initial_pizza_theta + math.pi
+                self.pizza_max_theta = self.initial_pizza_theta + self.period
         
         elif 'limacon-cos' == self.equation_type:
             # y, x-neg, x-pos
             # 3 + 6 cos(theta)
+            self.period = 2 * math.pi
             self.initial_pizza_theta = 0 if self.equation_sign < 0 else math.pi
-            self.pizza_max_theta = self.initial_pizza_theta + (2 * math.pi)
+            self.pizza_max_theta = self.initial_pizza_theta + self.period
             critical_vals = list(map(abs, [self.constants[0], self.constants[0] - self.constants[1], self.constants[0] + self.constants[1]]))
             if self.constants[0] == self.constants[1]:
                 # Handle Cardioid case
@@ -162,8 +173,9 @@ class PolarPizza:
         elif 'limacon-sin' == self.equation_type:
             # x, y-neg, y-pos
             # 3 + 6 cos(theta)
+            self.period = 2 * math.pi
             self.initial_pizza_theta = math.pi / 2 if self.equation_sign < 0 else 3 * math.pi / 2
-            self.pizza_max_theta = self.initial_pizza_theta + (2 * math.pi)
+            self.pizza_max_theta = self.initial_pizza_theta + self.period
             critical_vals = list(map(abs, [self.constants[0], self.constants[0] - self.constants[1], self.constants[0] + self.constants[1]]))
             if self.constants[0] == self.constants[1]:
                 # Handle Cardioid case
@@ -199,6 +211,30 @@ class PolarPizza:
                 x = r * math.cos(theta)
                 y = -r * math.sin(theta)
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
+
+    def generate_velocity(self):
+        COEFF_LOWER_BOUND = -5
+        COEFF_UPPER_BOUND = 5
+        dtheta_coeff = np.random.randint(COEFF_LOWER_BOUND, COEFF_UPPER_BOUND, size=4)
+        self.dthetaT = 0
+        for i in range(len(dtheta_coeff)):
+            self.dthetaT += dtheta_coeff[i] * self.t**i
+
+    def generate_time_bounds(self):
+        print(self.period)
+        num_lower = 0
+        num_upper = 0
+        while num_lower <= 0 or num_upper <= 0:
+            self.generate_velocity()
+            lower_time = sym.solve(self.dthetaT - self.initial_pizza_theta, self.t)
+            upper_time = sym.solve(self.dthetaT - self.pizza_max_theta, self.t)
+            # print(lower_time, upper_time)
+            num_lower = len(lower_time)
+            num_upper = len(upper_time)
+            times = sorted(lower_time + upper_time)
+        print(self.dthetaT)
+        print(times)
+
 
     def draw_delivery_path(self):
         theta = self.initial_pizza_theta
