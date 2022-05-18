@@ -75,7 +75,7 @@ class PolarPizza:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if self.check_btn_hover:
                     self.pizza_moving = True
-                    self.pizza_theta = 0.0
+                    self.pizza_theta = self.initial_pizza_theta
                     self.check_answer()
 
     def update(self):
@@ -121,21 +121,37 @@ class PolarPizza:
                 return f"r = {self.graph_scale_factor}∙({self.constants[0]} - {self.constants[1]}∙{self.equation_type[-3:]}(θ))"
 
     def define_graph(self):
-        if 'cos' == self.equation_type or 'sin' == self.equation_type:
+        if 'cos' == self.equation_type:
             ps = min(WIDTH//2, HEIGHT//2)
             if self.petal_num % 2 == 0:
                 num_petals = self.petal_num * 2
                 house_period = 2 * math.pi / num_petals
-                self.pizza_max_theta = self.pizza_theta + (2 * math.pi)
+                self.initial_pizza_theta = house_period / 2
+                self.pizza_max_theta = self.initial_pizza_theta + (2 * math.pi)
             else:
                 num_petals = self.petal_num
                 house_period = math.pi / num_petals
-                self.pizza_max_theta = self.pizza_theta + math.pi
+                self.initial_pizza_theta = house_period / 2
+                self.pizza_max_theta = self.initial_pizza_theta + math.pi
+        
+        if 'sin' == self.equation_type:
+            ps = min(WIDTH//2, HEIGHT//2)
+            if self.petal_num % 2 == 0:
+                num_petals = self.petal_num * 2
+                house_period = 2 * math.pi / num_petals
+                self.initial_pizza_theta = 0
+                self.pizza_max_theta = self.initial_pizza_theta + (2 * math.pi)
+            else:
+                num_petals = self.petal_num
+                house_period = math.pi / num_petals
+                self.initial_pizza_theta = 0
+                self.pizza_max_theta = self.initial_pizza_theta + math.pi
         
         elif 'limacon-cos' == self.equation_type:
             # y, x-neg, x-pos
             # 3 + 6 cos(theta)
-            self.pizza_max_theta = self.pizza_theta + (2 * math.pi)
+            self.initial_pizza_theta = 0
+            self.pizza_max_theta = self.initial_pizza_theta + (2 * math.pi)
             critical_vals = list(map(abs, [self.constants[0], self.constants[0] - self.constants[1], self.constants[0] + self.constants[1]]))
             if self.constants[0] == self.constants[1]:
                 # Handle Cardioid case
@@ -146,7 +162,8 @@ class PolarPizza:
         elif 'limacon-sin' == self.equation_type:
             # x, y-neg, y-pos
             # 3 + 6 cos(theta)
-            self.pizza_max_theta = self.pizza_theta + (2 * math.pi)
+            self.initial_pizza_theta = 0
+            self.pizza_max_theta = self.initial_pizza_theta + (2 * math.pi)
             critical_vals = list(map(abs, [self.constants[0], self.constants[0] - self.constants[1], self.constants[0] + self.constants[1]]))
             if self.constants[0] == self.constants[1]:
                 # Handle Cardioid case
@@ -157,8 +174,8 @@ class PolarPizza:
         self.graph_scale_factor = round(0.6 * ps) # scale down to 60% of max size
 
         if 'cos' == self.equation_type:
-            print(house_period)
-            self.pizza_theta = house_period / 2
+            # print(house_period)
+            # self.pizza_theta = house_period / 2
             for i in range(num_petals):
                 theta = i * house_period
                 r = self.get_r(theta, self.graph_scale_factor)
@@ -167,7 +184,7 @@ class PolarPizza:
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
 
         elif 'sin' == self.equation_type:
-            self.pizza_theta = 0
+            # self.pizza_theta = 0
             for i in range(num_petals):
                 theta = i * house_period + house_period / 2
                 r = self.get_r(theta, self.graph_scale_factor)
@@ -184,11 +201,11 @@ class PolarPizza:
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
 
     def draw_delivery_path(self):
-        theta = 0
+        theta = self.initial_pizza_theta
         r = 0
         x = 0
         y = 0
-        while theta < 2 * math.pi:
+        while theta < self.pizza_max_theta:
             r = self.get_r(theta, self.graph_scale_factor)
             x = r * math.cos(theta)
             y = -r * math.sin(theta)
