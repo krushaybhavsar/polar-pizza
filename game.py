@@ -150,7 +150,7 @@ class PolarPizza:
         elif 'limacon-cos' == self.equation_type:
             # y, x-neg, x-pos
             # 3 + 6 cos(theta)
-            self.initial_pizza_theta = 0
+            self.initial_pizza_theta = 0 if self.equation_sign < 0 else math.pi
             self.pizza_max_theta = self.initial_pizza_theta + (2 * math.pi)
             critical_vals = list(map(abs, [self.constants[0], self.constants[0] - self.constants[1], self.constants[0] + self.constants[1]]))
             if self.constants[0] == self.constants[1]:
@@ -162,7 +162,7 @@ class PolarPizza:
         elif 'limacon-sin' == self.equation_type:
             # x, y-neg, y-pos
             # 3 + 6 cos(theta)
-            self.initial_pizza_theta = 0
+            self.initial_pizza_theta = math.pi / 2 if self.equation_sign < 0 else 3 * math.pi / 2
             self.pizza_max_theta = self.initial_pizza_theta + (2 * math.pi)
             critical_vals = list(map(abs, [self.constants[0], self.constants[0] - self.constants[1], self.constants[0] + self.constants[1]]))
             if self.constants[0] == self.constants[1]:
