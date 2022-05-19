@@ -1,3 +1,4 @@
+from matplotlib.pyplot import draw
 import pygame, sys, math, random
 from settings import *
 import numpy as np
@@ -24,25 +25,26 @@ class PolarPizza:
         self.delivery_house_points = []
         # pizza
         self.pizza_theta = 0.0
-        self.pizza_coordinates = (0, 0)
+        self.pizza_coordinates = (AXIS_OFFSET[0], AXIS_OFFSET[1])
         self.pizza_moving = False
         self.pizza_max_theta = 2 * math.pi
         # images
         self.grass_bg = pygame.image.load('images/grass.jpg')
         self.house_img = pygame.transform.scale(pygame.image.load('images/house.png'), (55, 55))
-        self.pizza_img = pygame.transform.scale(pygame.image.load('images/pizza.png'), (35, 35))
+        self.pizza_img = pygame.transform.scale(pygame.image.load('images/pizza.png'), (40, 40))
         self.pizza_shop = pygame.transform.scale(pygame.image.load('images/pizza-shop.png'), (85, 85))
         # fonts
         self.font = pygame.font.Font("fonts/roboto.ttf", 50)
         self.font_medium = pygame.font.Font("fonts/roboto.ttf", 32)
         self.font_small = pygame.font.Font("fonts/roboto.ttf", 28)
         self.font_btn = pygame.font.Font("fonts/roboto.ttf", 32)
+        
         # answer box
         self.input_text = ""
         self.cursor_blink_count = 0
         self.cursor_blink_state = False
         self.over_text_limit = False
-        self.question = "Find the number of houses the pizza can get in ____ minutes"
+        self.question = "Find the minimum distance the pizza has to travel to deliver to all the houses and return home"
         self.units = "houses"
         self.check_btn_enabled = False
 
@@ -106,6 +108,10 @@ class PolarPizza:
 
     def check_answer(self):
         ans = float(self.input_text)
+        if self.units == "houses":
+            pass
+        elif self.units == "meters":
+            pass
 
     def get_r(self, theta, scale):
         if self.equation_type == 'cos':
@@ -260,13 +266,13 @@ class PolarPizza:
 
     def draw_answer_box(self):
         pygame.draw.rect(self.screen, AB_BG_COLOR, (0 + AB_HORIZONTAL_PADDING, HEIGHT - AB_HEIGHT, WIDTH - 2*AB_HORIZONTAL_PADDING, AB_HEIGHT), border_top_left_radius=AB_BORDER_RADIUS, border_top_right_radius=AB_BORDER_RADIUS)
-        self.screen.blit(self.font_small.render(self.question, True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT + 25))
-        self.screen.blit(self.font_medium.render("Answer: " + self.input_text + " " + self.units, True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT + 70))       
+        self.draw_text(text=self.question, color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT + 25, WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH - 75, AB_HEIGHT), aa=True)
+        self.screen.blit(self.font_medium.render("Answer: " + self.input_text + " " + self.units, True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - 60))       
         if self.cursor_blink_count % CURSOR_BLINK_RATE == 0:
             self.cursor_blink_state = not self.cursor_blink_state
         self.cursor_blink_count += 1
         if self.cursor_blink_state:
-            self.screen.blit(self.font_medium.render('|', True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text)[0] + 36, HEIGHT - AB_HEIGHT - 4 + 70))
+            self.screen.blit(self.font_medium.render('|', True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text)[0] + 36, HEIGHT - 4 - 60))
         if self.font_medium.size("Answer: " + self.input_text + " " + self.units)[0] > self.font_small.size(self.question)[0]:
             self.over_text_limit = True
         check_btn_coordinates = (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH - 40, HEIGHT - AB_HEIGHT//2 - CHECK_BUTTON_HEIGHT//2)
@@ -283,6 +289,28 @@ class PolarPizza:
             self.check_btn_enabled = False
         pygame.draw.rect(self.screen, btn_color, (check_btn_coordinates[0], check_btn_coordinates[1], CHECK_BUTTON_WIDTH, CHECK_BUTTON_HEIGHT), border_top_left_radius=CB_BR, border_top_right_radius=CB_BR, border_bottom_left_radius=CB_BR, border_bottom_right_radius=CB_BR)
         self.screen.blit(self.font_btn.render("Run Simulation", True, font_color), (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH + CHECK_BUTTON_WIDTH//2 - self.font_btn.size("Run Simulation")[0]//2 - 40, HEIGHT - AB_HEIGHT//2 - self.font_btn.size("Run Simulation")[1]//2))
+
+    def draw_text(self, text, color, rect, font, aa=False, bkg=None):
+        y = rect.top
+        lineSpacing = -2
+        fontHeight = font.size("Tg")[1] + 3
+        while text:
+            i = 1
+            if y + fontHeight > rect.bottom:
+                break
+            while font.size(text[:i])[0] < rect.width and i < len(text):
+                i += 1
+            if i < len(text): 
+                i = text.rfind(" ", 0, i) + 1
+            if bkg:
+                image = font.render(text[:i], 1, color, bkg)
+                image.set_colorkey(bkg)
+            else:
+                image = font.render(text[:i], aa, color)
+            self.screen.blit(image, (rect.left, y))
+            y += fontHeight + lineSpacing
+            text = text[i:]
+        return text
 
 if __name__ == "__main__":
     pygame.init()
