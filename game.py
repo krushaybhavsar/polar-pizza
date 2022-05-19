@@ -33,18 +33,17 @@ class PolarPizza:
         self.pizza_shop = pygame.transform.scale(pygame.image.load('images/pizza-shop.png'), (85, 85))
         # fonts
         self.font = pygame.font.Font("fonts/roboto.ttf", 50)
-        self.font_medium = pygame.font.Font("fonts/roboto.ttf", 34)
-        self.font_small = pygame.font.Font("fonts/roboto.ttf", 30)
+        self.font_medium = pygame.font.Font("fonts/roboto.ttf", 32)
+        self.font_small = pygame.font.Font("fonts/roboto.ttf", 28)
         self.font_btn = pygame.font.Font("fonts/roboto.ttf", 32)
         # answer box
         self.input_text = ""
         self.cursor_blink_count = 0
         self.cursor_blink_state = False
         self.over_text_limit = False
-        self.question = "Find the number of houses the pizza can get."
-        self.units = "minutes"
-        self.question_type = "houses"
-        self.check_btn_hover = False
+        self.question = "Find the number of houses the pizza can get in ____ minutes"
+        self.units = "houses"
+        self.check_btn_enabled = False
 
         self.define_graph()
 
@@ -70,10 +69,11 @@ class PolarPizza:
                 if event.key == pygame.K_BACKSPACE:
                     self.input_text = self.input_text[:-1]
                     self.over_text_limit = False
-                if not self.over_text_limit and (event.key >= pygame.K_0 and event.key <= pygame.K_9):
-                    self.input_text += event.unicode
+                if not self.over_text_limit and (event.key >= pygame.K_0 and event.key <= pygame.K_9 or pygame.K_PERIOD):
+                    if str(event.unicode) in "0123456789.":
+                        self.input_text += event.unicode
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if self.check_btn_hover:
+                if self.check_btn_enabled:
                     self.pizza_moving = True
                     self.pizza_theta = self.initial_pizza_theta
                     self.check_answer()
@@ -236,12 +236,15 @@ class PolarPizza:
         check_btn_coordinates = (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH - 40, HEIGHT - AB_HEIGHT//2 - CHECK_BUTTON_HEIGHT//2)
         btn_color = CHECK_BUTTON_COLOR
         font_color = CB_FONT_COLOR
-        if check_btn_coordinates[0] < self.mouse_pos[0] < check_btn_coordinates[0] + CHECK_BUTTON_WIDTH and check_btn_coordinates[1] < self.mouse_pos[1] < check_btn_coordinates[1] + CHECK_BUTTON_HEIGHT and self.input_text != "":
-            self.check_btn_hover = True
-            btn_color = CHECK_BUTTON_HOVER_COLOR
+        button_hovered = check_btn_coordinates[0] < self.mouse_pos[0] < check_btn_coordinates[0] + CHECK_BUTTON_WIDTH and check_btn_coordinates[1] < self.mouse_pos[1] < check_btn_coordinates[1] + CHECK_BUTTON_HEIGHT 
+        if self.input_text != "":
+            self.check_btn_enabled = True
+            btn_color = CHECK_BUTTON_ENABLED_COLOR
             font_color = CB_HOVER_FONT_COLOR
+            if button_hovered:
+                btn_color = CHECK_BUTTON_HOVER_COLOR
         else:
-            self.check_btn_hover = False
+            self.check_btn_enabled = False
         pygame.draw.rect(self.screen, btn_color, (check_btn_coordinates[0], check_btn_coordinates[1], CHECK_BUTTON_WIDTH, CHECK_BUTTON_HEIGHT), border_top_left_radius=CB_BR, border_top_right_radius=CB_BR, border_bottom_left_radius=CB_BR, border_bottom_right_radius=CB_BR)
         self.screen.blit(self.font_btn.render("Run Simulation", True, font_color), (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH + CHECK_BUTTON_WIDTH//2 - self.font_btn.size("Run Simulation")[0]//2 - 40, HEIGHT - AB_HEIGHT//2 - self.font_btn.size("Run Simulation")[1]//2))
 
