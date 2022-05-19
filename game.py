@@ -23,6 +23,7 @@ class PolarPizza:
         self.equation_sign = np.random.choice([-1, 1])
         self.graph_scale_factor = MAX_PATH_SCALE
         self.delivery_house_points = []
+        self.delivery_house_thetas = []
         # pizza
         self.pizza_theta = 0.0
         self.pizza_coordinates = (AXIS_OFFSET[0], AXIS_OFFSET[1])
@@ -53,10 +54,13 @@ class PolarPizza:
         self.domain = sym.Interval(0, math.inf)
 
         self.define_graph()
-        self.time_low, self.time_high = self.generate_time_bounds()
-        duration = (self.time_high - self.time_low) / 2
+        self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
+        print(self.dthetaT)
+        print(self.time_low, self.time_high, self.time_end)
+        print(self.initial_pizza_theta, self.pizza_max_theta)
+        print(self.calculate_answer())
 
-        self.time_end = np.random.uniform(self.time_low + duration / 2, self.time_high - duration / 2)
+        self.calculate_answer()
 
     def run(self):
         while self.running:
@@ -87,15 +91,19 @@ class PolarPizza:
                 if self.check_btn_enabled:
                     self.pizza_moving = True
                     self.pizza_theta = self.initial_pizza_theta
+                    self.time = self.time_low
                     self.check_answer()
 
     def update(self):
         if self.pizza_moving:
-            if self.pizza_theta < self.pizza_max_theta:
-                t = self.pizza_theta
-                r = self.get_r(t, self.graph_scale_factor)
-                self.pizza_coordinates = (r * math.cos(t) + AXIS_OFFSET[0], -(r * math.sin(t)) + AXIS_OFFSET[1])
-                self.pizza_theta = self.pizza_theta + (math.pi / 180)
+            if self.time < self.time_high:
+                theta = sym.integrate(self.dthetaT, (self.t, self.time, self.time + self.increment)) + self.pizza_theta # Need to simply calculate theta by integrating dtheta/dt from time_low to time and adding to initial pizza theta
+                print(self.time, theta)
+                r = self.get_r(theta, self.graph_scale_factor, 'graph')
+                self.pizza_coordinates = (r * math.cos(theta) + AXIS_OFFSET[0], -(r * math.sin(theta)) + AXIS_OFFSET[1])
+                self.pizza_theta = theta
+                # self.pizza_theta = self.pizza_theta + (math.pi / 180)
+                self.time += self.increment
             else:
                 self.pizza_moving = False
 
@@ -116,7 +124,11 @@ class PolarPizza:
         elif self.units == "meters":
             pass
 
-    def get_r(self, theta, scale):
+    def get_r(self, measure, scale, purpose):
+        if purpose == "pizza":
+            theta = self.theta_equation.subs(self.t, measure)
+        elif purpose == "graph":
+            theta = measure
         if self.equation_type == 'cos':
             return scale * math.cos(self.petal_num * theta)
         elif self.equation_type == 'sin':
@@ -134,6 +146,73 @@ class PolarPizza:
                 return f"r = {self.graph_scale_factor}∙({self.constants[0]} + {self.constants[1]}∙{self.equation_type[-3:]}(θ))"
             else:
                 return f"r = {self.graph_scale_factor}∙({self.constants[0]} - {self.constants[1]}∙{self.equation_type[-3:]}(θ))"
+
+    def generate_velocity(self):
+        dtheta_coeff = np.random.randint(COEFF_LOWER_BOUND, COEFF_UPPER_BOUND, size=8)
+        self.dthetaT = 0
+        for i in range(len(dtheta_coeff)):
+            self.dthetaT += dtheta_coeff[i] * self.t**i
+        
+        # self.dthetaT += 5 * sym.cos(self.t)
+        # self.dthetaT += 3 * sym.sin(self.t)
+        # self.dthetaT += sym.exp(self.t)
+
+    def generate_time_bounds(self):
+        num_lower = 0
+        num_upper = 0
+
+        low = 0
+        high = 0
+
+        while low >= high:
+            self.generate_velocity()
+            
+            self.theta_equation = sym.integrate(self.dthetaT, self.t)
+
+            lower_time = sym.solveset(self.theta_equation - self.initial_pizza_theta, self.t, domain=self.domain)
+            upper_time = sym.solveset(self.theta_equation - self.pizza_max_theta, self.t, domain=self.domain)
+
+            try:
+                lower_time = list(lower_time)
+                upper_time = list(upper_time)
+            except:
+                print("Found an impossible equation to solve... Trying again...")
+                continue
+
+            num_lower = len(lower_time)
+            num_upper = len(upper_time)
+
+            if num_lower > 0 and num_upper > 0:
+                low = float(lower_time[0])
+                high = float(upper_time[0])
+
+        duration = (high - low) / 2
+        end = np.random.uniform(low + duration / 2, high - duration / 2)
+
+        self.pizza_max_theta = self.theta_equation.subs(self.t, high)
+        self.increment = (high - low) / 10000
+        print(self.increment)
+
+        return low, high, end
+
+    def calculate_answer(self):
+        count = 0
+        for point in self.delivery_house_thetas:
+            if point > self.initial_pizza_theta and point < self.pizza_max_theta:
+                count += 1
+        return count
+
+    def draw_delivery_path(self):
+        theta = 0
+        r = 0
+        x = 0
+        y = 0
+        while theta < self.period:
+            r = self.get_r(theta, self.graph_scale_factor, 'graph')
+            x = r * math.cos(theta)
+            y = -r * math.sin(theta)
+            pygame.draw.circle(self.screen, PATH_COLOR, (x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]), PATH_STROKE_WIDTH)
+            theta += (1 / DELIVERY_PATH_RESOLUTION)
 
     def define_graph(self):
         if 'cos' == self.equation_type:
@@ -199,73 +278,30 @@ class PolarPizza:
             # self.pizza_theta = house_period / 2
             for i in range(num_petals):
                 theta = i * house_period
-                r = self.get_r(theta, self.graph_scale_factor)
+                r = self.get_r(theta, self.graph_scale_factor, 'graph')
                 x = r * math.cos(theta)
                 y = -r * math.sin(theta)
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
+                self.delivery_house_thetas.append(theta)
 
         elif 'sin' == self.equation_type:
             # self.pizza_theta = 0
             for i in range(num_petals):
                 theta = i * house_period + house_period / 2
-                r = self.get_r(theta, self.graph_scale_factor)
+                r = self.get_r(theta, self.graph_scale_factor, 'graph')
                 x = r * math.cos(theta)
                 y = -r * math.sin(theta)
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
+                self.delivery_house_thetas.append(theta)
 
         elif 'limacon-cos' == self.equation_type or 'limacon-sin' == self.equation_type:
             key_points = [0, math.pi/2, math.pi, 3*math.pi/2]
             for theta in key_points:
-                r = self.get_r(theta, self.graph_scale_factor)
+                r = self.get_r(theta, self.graph_scale_factor, 'graph')
                 x = r * math.cos(theta)
                 y = -r * math.sin(theta)
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
-
-    def generate_velocity(self):
-        dtheta_coeff = np.random.randint(COEFF_LOWER_BOUND, COEFF_UPPER_BOUND, size=4)
-        self.dthetaT = 0
-        for i in range(len(dtheta_coeff)):
-            self.dthetaT += dtheta_coeff[i] * self.t**i
-
-    def generate_time_bounds(self):
-        num_lower = 0
-        num_upper = 0
-
-        low = 0
-        high = 0
-        while low >= high:
-            self.generate_velocity()
-
-            lower_time = sym.solveset(self.dthetaT - self.initial_pizza_theta, self.t, domain=self.domain)
-            upper_time = sym.solveset(self.dthetaT - self.pizza_max_theta, self.t, domain=self.domain)                
-
-            try:
-                lower_time = list(lower_time)
-                upper_time = list(upper_time)
-            except:
-                print("Found an impossible equation to solve... Trying again...")
-                continue
-
-            num_lower = len(lower_time)
-            num_upper = len(upper_time)
-
-            if num_lower > 0 and num_upper > 0:
-                low = float(lower_time[0])
-                high = float(upper_time[0])
-
-        return low, high
-
-    def draw_delivery_path(self):
-        theta = self.initial_pizza_theta
-        r = 0
-        x = 0
-        y = 0
-        while theta < self.pizza_max_theta:
-            r = self.get_r(theta, self.graph_scale_factor)
-            x = r * math.cos(theta)
-            y = -r * math.sin(theta)
-            pygame.draw.circle(self.screen, PATH_COLOR, (x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]), PATH_STROKE_WIDTH)
-            theta += (1 / DELIVERY_PATH_RESOLUTION)
+                self.delivery_house_thetas.append(theta)
 
     def draw_houses(self):
         for tip in self.delivery_house_points:
