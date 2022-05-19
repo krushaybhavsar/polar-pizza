@@ -49,10 +49,13 @@ class PolarPizza:
 
         # equation
         self.t = sym.Symbol('t', real=True, nonnegative=True)
+        self.domain = sym.Interval(0, math.inf)
 
         self.define_graph()
-        # self.generate_velocity()
-        self.generate_time_bounds()
+        self.time_low, self.time_high = self.generate_time_bounds()
+        duration = (self.time_high - self.time_low) / 2
+
+        self.time_end = np.random.uniform(self.time_low + duration / 2, self.time_high - duration / 2)
 
     def run(self):
         while self.running:
@@ -213,28 +216,38 @@ class PolarPizza:
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
 
     def generate_velocity(self):
-        COEFF_LOWER_BOUND = -5
-        COEFF_UPPER_BOUND = 5
         dtheta_coeff = np.random.randint(COEFF_LOWER_BOUND, COEFF_UPPER_BOUND, size=4)
         self.dthetaT = 0
         for i in range(len(dtheta_coeff)):
             self.dthetaT += dtheta_coeff[i] * self.t**i
 
     def generate_time_bounds(self):
-        print(self.period)
         num_lower = 0
         num_upper = 0
-        while num_lower <= 0 or num_upper <= 0:
+
+        low = 0
+        high = 0
+        while low >= high:
             self.generate_velocity()
-            lower_time = sym.solve(self.dthetaT - self.initial_pizza_theta, self.t)
-            upper_time = sym.solve(self.dthetaT - self.pizza_max_theta, self.t)
-            # print(lower_time, upper_time)
+
+            lower_time = sym.solveset(self.dthetaT - self.initial_pizza_theta, self.t, domain=self.domain)
+            upper_time = sym.solveset(self.dthetaT - self.pizza_max_theta, self.t, domain=self.domain)                
+
+            try:
+                lower_time = list(lower_time)
+                upper_time = list(upper_time)
+            except:
+                print("Found an impossible equation to solve... Trying again...")
+                continue
+
             num_lower = len(lower_time)
             num_upper = len(upper_time)
-            times = sorted(lower_time + upper_time)
-        print(self.dthetaT)
-        print(times)
 
+            if num_lower > 0 and num_upper > 0:
+                low = float(lower_time[0])
+                high = float(upper_time[0])
+
+        return low, high
 
     def draw_delivery_path(self):
         theta = self.initial_pizza_theta
