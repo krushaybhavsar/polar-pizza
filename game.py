@@ -34,12 +34,13 @@ class PolarPizza:
         self.house_img = pygame.transform.scale(pygame.image.load('images/house.png'), (55, 55))
         self.pizza_img = pygame.transform.scale(pygame.image.load('images/pizza.png'), (40, 40))
         self.pizza_shop = pygame.transform.scale(pygame.image.load('images/pizza-shop.png'), (85, 85))
+        self.correct_img = pygame.transform.scale(pygame.image.load('images/correct.png'), (40, 40))
+        self.incorrect_img = pygame.transform.scale(pygame.image.load('images/incorrect.png'), (40, 40))
         # fonts
         self.font = pygame.font.Font("fonts/roboto.ttf", 50)
         self.font_medium = pygame.font.Font("fonts/roboto.ttf", 32)
         self.font_small = pygame.font.Font("fonts/roboto.ttf", 28)
         self.font_btn = pygame.font.Font("fonts/roboto.ttf", 32)
-        
         # answer box
         self.input_text = ""
         self.cursor_blink_count = 0
@@ -49,7 +50,9 @@ class PolarPizza:
         self.units = "meters"
         self.check_btn_enabled = False
         self.button_hovered = False
-
+        self.answer_state = "none"
+        self.input_enabled = True
+        self.correct_ans = -1
         # equation
         self.t = sym.Symbol('t', real=True, nonnegative=True)
         self.domain = sym.Interval(0, math.inf)
@@ -78,7 +81,7 @@ class PolarPizza:
         for event in events:
             if event.type == pygame.QUIT:
                 self.running = False
-            if event.type == pygame.KEYDOWN:
+            if self.input_enabled and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_BACKSPACE:
                     self.input_text = self.input_text[:-1]
                     self.over_text_limit = False
@@ -117,11 +120,11 @@ class PolarPizza:
             if self.units == "houses":
                 pass
             elif self.units == "meters":
-                correct_ans = self.calc_distance()
-                if ans == correct_ans:
-                    print("Correct!")
+                if ans == self.correct_ans:
+                    self.answer_state = "correct"
+                    self.input_enabled = False
                 else:
-                    print("Incorrect! Try again!")
+                    self.answer_state = "incorrect"
         except:
             print("Invalid input!")
 
@@ -260,6 +263,10 @@ class PolarPizza:
                 x = r * math.cos(theta)
                 y = -r * math.sin(theta)
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
+        if self.units == "meters":
+            self.correct_ans = self.calc_distance()
+        elif self.units == "houses":
+            pass
 
     def generate_velocity(self):
         dtheta_coeff = np.random.randint(COEFF_LOWER_BOUND, COEFF_UPPER_BOUND, size=4)
@@ -324,10 +331,17 @@ class PolarPizza:
         if self.cursor_blink_count % CURSOR_BLINK_RATE == 0:
             self.cursor_blink_state = not self.cursor_blink_state
         self.cursor_blink_count += 1
-        if self.cursor_blink_state:
+        if self.cursor_blink_state and self.input_enabled:
             self.screen.blit(self.font_medium.render('|', True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text)[0] + 36, HEIGHT - 4 - 60))
         if self.font_medium.size("Answer: " + self.input_text + " " + self.units)[0] > self.font_small.size(self.question)[0]:
             self.over_text_limit = True
+        icon_coord = (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text + " " + self.units)[0] + 58, HEIGHT - 60 - 3)
+        if self.answer_state == "correct":
+            self.screen.blit(self.correct_img, icon_coord)
+            self.screen.blit(self.font_medium.render("Correct!", True, GREEN), (icon_coord[0] + 52, HEIGHT - 60))       
+        elif self.answer_state == "incorrect":
+            self.screen.blit(self.incorrect_img, icon_coord)
+            self.screen.blit(self.font_medium.render("Incorrect! Try again...", True, RED), (icon_coord[0] + 52, HEIGHT - 60))       
         check_btn_coordinates = (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH - 40, HEIGHT - AB_HEIGHT//2 - CHECK_BUTTON_HEIGHT//2)
         btn_color = CHECK_BUTTON_COLOR
         font_color = CB_FONT_COLOR
