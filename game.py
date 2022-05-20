@@ -1,4 +1,6 @@
 import pygame, sys, math, random
+from matplotlib.pyplot import draw
+import pygame, sys, math, random, threading
 from settings import *
 import numpy as np
 import sympy as sym
@@ -14,6 +16,8 @@ class PolarPizza:
         self.running = True
         self.state = 'playing'
         self.mouse_pos = (0, 0)
+        self.loading = True
+        self.info_message = ""
         # polar graph
         self.petal_num = random.randint(4, 4)
         self.constants = np.random.randint(1, 10, 2)
@@ -56,16 +60,16 @@ class PolarPizza:
         # equation
         self.t = sym.Symbol('t', real=True, nonnegative=True)
         self.domain = sym.Interval(0, math.inf)
-        self.steps_scaling_factor = 1
 
+        # graphing
+        self.steps_scaling_factor = 1
         self.define_graph()
         self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
-        print(self.dthetaT)
-        print(self.time_low, self.time_high, self.time_end)
-        print(self.initial_pizza_theta, self.pizza_max_theta)
-        print(self.calculate_answer())
-
-        self.calculate_answer()
+        
+        # answer
+        self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
+        self.correct_ans_thread.start()
+        self.correct_ans = -1
 
     def run(self):
         while self.running:
@@ -132,6 +136,7 @@ class PolarPizza:
 
     def check_answer(self):
         try:
+            self.correct_ans_thread.join()
             ans = int(self.input_text)
             if self.units == "houses":
                 pass
@@ -141,8 +146,19 @@ class PolarPizza:
                     self.input_enabled = False
                 else:
                     self.answer_state = "incorrect"
+                    self.input_text = ""
         except:
-            print("Invalid input!")
+            self.info_message = "Invalid input!"
+
+    def get_correct_ans(self):
+        if self.units == "houses":
+            self.info_message = "Calculating max number of houses..."
+            pass
+        elif self.units == "meters":
+            self.info_message = "Calculating distance..."
+            self.correct_ans = self.calc_distance()
+        self.info_message = ""
+        print("Correct answer: " + str(self.correct_ans))
 
     def calc_distance(self):
         n = sym.Symbol("n")
@@ -163,6 +179,7 @@ class PolarPizza:
         return round(length)
 
     def calc_area(self):
+        self.info_message = "Calculating area..."
         a = sym.Symbol('a')
         ans = 0.0
         if self.equation_type == 'cos':
@@ -173,6 +190,7 @@ class PolarPizza:
             ans = sym.integrate((self.graph_scale_factor * (self.constants[0] + self.equation_sign * self.constants[1] * sym.cos(a)))**2, (a, 0, self.pizza_max_theta - self.initial_pizza_theta))
         elif self.equation_type == 'limacon-sin':
             ans = sym.integrate((self.graph_scale_factor * (self.constants[0] + self.equation_sign * self.constants[1] * sym.sin(a)))**2, (a, 0, self.pizza_max_theta - self.initial_pizza_theta))
+        self.info_message = ""
         return 0.5*ans
 
     def get_r(self, theta, scale):
@@ -201,6 +219,7 @@ class PolarPizza:
             self.dthetaT += dtheta_coeff[i] * self.t**i
 
     def generate_time_bounds(self):
+        self.info_message = "Generating time bounds..."
         num_lower = 0
         num_upper = 0
 
@@ -233,7 +252,7 @@ class PolarPizza:
         end = np.random.uniform(low + duration / 2, high)
 
         self.pizza_max_theta = self.theta_equation.subs(self.t, end)
-
+        self.info_message = ""
         return low, high, end
 
     def calculate_answer(self):
@@ -256,6 +275,7 @@ class PolarPizza:
             theta += (1 / DELIVERY_PATH_RESOLUTION)
 
     def define_graph(self):
+        self.info_message = "Drawing graph..."
         if 'cos' == self.equation_type:
             ps = min(WIDTH//2, HEIGHT//2)
             if self.petal_num % 2 == 0:
@@ -355,39 +375,7 @@ class PolarPizza:
         elif self.units == "houses":
             pass
 
-    def generate_velocity(self):
-        dtheta_coeff = np.random.randint(COEFF_LOWER_BOUND, COEFF_UPPER_BOUND, size=4)
-        self.dthetaT = 0
-        for i in range(len(dtheta_coeff)):
-            self.dthetaT += dtheta_coeff[i] * self.t**i
-
-    # def generate_time_bounds(self):
-    #     num_lower = 0
-    #     num_upper = 0
-
-    #     low = 0
-    #     high = 0
-    #     while low >= high:
-    #         self.generate_velocity()
-
-    #         lower_time = sym.solveset(self.dthetaT - self.initial_pizza_theta, self.t, domain=self.domain)
-    #         upper_time = sym.solveset(self.dthetaT - self.pizza_max_theta, self.t, domain=self.domain)                
-
-    #         try:
-    #             lower_time = list(lower_time)
-    #             upper_time = list(upper_time)
-    #         except:
-    #             print("Found an impossible equation to solve... Trying again...")
-    #             continue
-
-    #         num_lower = len(lower_time)
-    #         num_upper = len(upper_time)
-
-    #         if num_lower > 0 and num_upper > 0:
-    #             low = float(lower_time[0])
-    #             high = float(upper_time[0])
-
-    #     return low, high
+          self.info_message = ""
 
     def draw_delivery_path(self):
         theta = 0
@@ -412,6 +400,7 @@ class PolarPizza:
         self.screen.blit(self.font.render(self.get_equation_string(), True, INFO_FONT_COLOR), (40, 30))
 
     def draw_answer_box(self):
+        self.draw_text(text=self.info_message, color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT - 35, WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH - 75, AB_HEIGHT), aa=True)
         pygame.draw.rect(self.screen, AB_BG_COLOR, (0 + AB_HORIZONTAL_PADDING, HEIGHT - AB_HEIGHT, WIDTH - 2*AB_HORIZONTAL_PADDING, AB_HEIGHT), border_top_left_radius=AB_BORDER_RADIUS, border_top_right_radius=AB_BORDER_RADIUS)
         self.draw_text(text=self.question, color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT + 25, WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH - 75, AB_HEIGHT), aa=True)
         self.screen.blit(self.font_medium.render("Answer: " + self.input_text + " " + self.units, True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - 60))       
@@ -442,7 +431,7 @@ class PolarPizza:
         else:
             self.check_btn_enabled = False
         pygame.draw.rect(self.screen, btn_color, (check_btn_coordinates[0], check_btn_coordinates[1], CHECK_BUTTON_WIDTH, CHECK_BUTTON_HEIGHT), border_top_left_radius=CB_BR, border_top_right_radius=CB_BR, border_bottom_left_radius=CB_BR, border_bottom_right_radius=CB_BR)
-        self.screen.blit(self.font_btn.render("Run Simulation", True, font_color), (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH + CHECK_BUTTON_WIDTH//2 - self.font_btn.size("Run Simulation")[0]//2 - 40, HEIGHT - AB_HEIGHT//2 - self.font_btn.size("Run Simulation")[1]//2))
+        self.screen.blit(self.font_btn.render("Check", True, font_color), (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH + CHECK_BUTTON_WIDTH//2 - self.font_btn.size("Check")[0]//2 - 40, HEIGHT - AB_HEIGHT//2 - self.font_btn.size("Check")[1]//2))
 
     def draw_text(self, text, color, rect, font, aa=False, bkg=None):
         y = rect.top
