@@ -251,8 +251,12 @@ class PolarPizza:
         duration = (high - low) / 2
         end = np.random.uniform(low + duration / 2, high)
 
+        if self.units == "meters":
+            end = high
+
         self.pizza_max_theta = self.theta_equation.subs(self.t, end)
         self.info_message = ""
+
         return low, high, end
 
     def calculate_answer(self):
@@ -375,7 +379,7 @@ class PolarPizza:
         elif self.units == "houses":
             pass
 
-          self.info_message = ""
+        self.info_message = ""
 
     def draw_delivery_path(self):
         theta = 0
