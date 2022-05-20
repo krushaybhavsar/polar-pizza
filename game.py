@@ -48,12 +48,14 @@ class PolarPizza:
         self.cursor_blink_count = 0
         self.cursor_blink_state = False
         self.over_text_limit = False
-        self.question = "Find the minimum distance the pizza has to travel to deliver to all the houses and return home. Round to the nearest whole number."
-        self.units = "meters"
+        self.questions = ["Find the minimum distance the pizza has to travel to deliver to all the houses and return home. Round to the nearest whole number.", "Hello jfkjskdjkfjsk"]
+        self.units = ["meters", "houses"]
+        self.question_index = 0
         self.check_btn_enabled = False
         self.button_hovered = False
         self.answer_state = "none"
         self.input_enabled = True
+        self.button_text = "Check"
         self.correct_ans = -1
         # equation
         self.t = sym.Symbol('t', real=True, nonnegative=True)
@@ -119,26 +121,46 @@ class PolarPizza:
         pygame.display.update()
 
     def check_answer(self):
+        print("called")
         try:
-            self.correct_ans_thread.join()
-            ans = int(self.input_text)
-            if self.units == "houses":
-                pass
-            elif self.units == "meters":
-                if ans == self.correct_ans:
-                    self.answer_state = "correct"
-                    self.input_enabled = False
+            print(self.input_text)
+            if self.input_text != "":
+                self.correct_ans_thread.join()
+                ans = int(self.input_text)
+            if self.button_text == "Check":
+                if self.units[self.question_index] == "houses":
+                    pass
+                elif self.units[self.question_index] == "meters":
+                    if ans == self.correct_ans:
+                        self.answer_state = "correct"
+                        self.input_enabled = False
+                        self.button_text = "Next Question"
+                    else:
+                        self.answer_state = "incorrect"
+                        self.input_text = ""
+            elif self.button_text == "Next Question":
+                self.input_text = ""
+                self.over_text_limit = False
+                self.answer_state = "none"
+                self.input_enabled = True
+                self.button_text = "Check"
+                self.correct_ans = -1
+                if self.question_index == 0:
+                    self.question_index = 1
+                    self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
+                    self.correct_ans_thread.start()
                 else:
-                    self.answer_state = "incorrect"
-                    self.input_text = ""
-        except:
+                    self.question_index = 0
+                    self.__init__()
+        except Exception as e:
             self.info_message = "Invalid input!"
+            print(e)
 
     def get_correct_ans(self):
-        if self.units == "houses":
+        if self.units[self.question_index] == "houses":
             self.info_message = "Calculating max number of houses..."
-            pass
-        elif self.units == "meters":
+            self.correct_ans = 5
+        elif self.units[self.question_index] == "meters":
             self.info_message = "Calculating distance..."
             self.correct_ans = self.calc_distance()
         self.info_message = ""
@@ -337,28 +359,31 @@ class PolarPizza:
         self.screen.blit(self.font.render(self.get_equation_string(), True, INFO_FONT_COLOR), (40, 30))
 
     def draw_answer_box(self):
-        self.draw_text(text=self.info_message, color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT - 35, WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH - 75, AB_HEIGHT), aa=True)
+        button_width = CHECK_BUTTON_WIDTH
+        if self.button_text == "Next Question":
+            button_width = 250
+        self.draw_text(text=self.info_message, color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT - 35, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 75, AB_HEIGHT), aa=True)
         pygame.draw.rect(self.screen, AB_BG_COLOR, (0 + AB_HORIZONTAL_PADDING, HEIGHT - AB_HEIGHT, WIDTH - 2*AB_HORIZONTAL_PADDING, AB_HEIGHT), border_top_left_radius=AB_BORDER_RADIUS, border_top_right_radius=AB_BORDER_RADIUS)
-        self.draw_text(text=self.question, color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT + 25, WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH - 75, AB_HEIGHT), aa=True)
-        self.screen.blit(self.font_medium.render("Answer: " + self.input_text + " " + self.units, True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - 60))       
+        self.draw_text(text=self.questions[self.question_index], color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT + 25, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 75, AB_HEIGHT), aa=True)
+        self.screen.blit(self.font_medium.render("Answer: " + self.input_text + " " + self.units[self.question_index], True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - 60))       
         if self.cursor_blink_count % CURSOR_BLINK_RATE == 0:
             self.cursor_blink_state = not self.cursor_blink_state
         self.cursor_blink_count += 1
         if self.cursor_blink_state and self.input_enabled:
             self.screen.blit(self.font_medium.render('|', True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text)[0] + 36, HEIGHT - 4 - 60))
-        if self.font_medium.size("Answer: " + self.input_text + " " + self.units)[0] > self.font_small.size(self.question)[0]:
+        if self.font_medium.size("Answer: " + self.input_text + " " + self.units[self.question_index])[0] > self.font_small.size(self.questions[self.question_index])[0]:
             self.over_text_limit = True
-        icon_coord = (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text + " " + self.units)[0] + 58, HEIGHT - 60 - 3)
+        icon_coord = (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text + " " + self.units[self.question_index])[0] + 58, HEIGHT - 60 - 3)
         if self.answer_state == "correct":
             self.screen.blit(self.correct_img, icon_coord)
             self.screen.blit(self.font_medium.render("Correct!", True, GREEN), (icon_coord[0] + 52, HEIGHT - 60))       
         elif self.answer_state == "incorrect":
             self.screen.blit(self.incorrect_img, icon_coord)
             self.screen.blit(self.font_medium.render("Incorrect! Try again...", True, RED), (icon_coord[0] + 52, HEIGHT - 60))       
-        check_btn_coordinates = (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH - 40, HEIGHT - AB_HEIGHT//2 - CHECK_BUTTON_HEIGHT//2)
+        check_btn_coordinates = (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 40, HEIGHT - AB_HEIGHT//2 - CHECK_BUTTON_HEIGHT//2)
         btn_color = CHECK_BUTTON_COLOR
         font_color = CB_FONT_COLOR
-        self.button_hovered = check_btn_coordinates[0] < self.mouse_pos[0] < check_btn_coordinates[0] + CHECK_BUTTON_WIDTH and check_btn_coordinates[1] < self.mouse_pos[1] < check_btn_coordinates[1] + CHECK_BUTTON_HEIGHT 
+        self.button_hovered = check_btn_coordinates[0] < self.mouse_pos[0] < check_btn_coordinates[0] + button_width and check_btn_coordinates[1] < self.mouse_pos[1] < check_btn_coordinates[1] + CHECK_BUTTON_HEIGHT 
         if self.input_text != "":
             self.check_btn_enabled = True
             btn_color = CHECK_BUTTON_ENABLED_COLOR
@@ -367,8 +392,8 @@ class PolarPizza:
                 btn_color = CHECK_BUTTON_HOVER_COLOR
         else:
             self.check_btn_enabled = False
-        pygame.draw.rect(self.screen, btn_color, (check_btn_coordinates[0], check_btn_coordinates[1], CHECK_BUTTON_WIDTH, CHECK_BUTTON_HEIGHT), border_top_left_radius=CB_BR, border_top_right_radius=CB_BR, border_bottom_left_radius=CB_BR, border_bottom_right_radius=CB_BR)
-        self.screen.blit(self.font_btn.render("Check", True, font_color), (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - CHECK_BUTTON_WIDTH + CHECK_BUTTON_WIDTH//2 - self.font_btn.size("Check")[0]//2 - 40, HEIGHT - AB_HEIGHT//2 - self.font_btn.size("Check")[1]//2))
+        pygame.draw.rect(self.screen, btn_color, (check_btn_coordinates[0], check_btn_coordinates[1], button_width, CHECK_BUTTON_HEIGHT), border_top_left_radius=CB_BR, border_top_right_radius=CB_BR, border_bottom_left_radius=CB_BR, border_bottom_right_radius=CB_BR)
+        self.screen.blit(self.font_btn.render(self.button_text, True, font_color), (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - button_width + button_width//2 - self.font_btn.size(self.button_text)[0]//2 - 40, HEIGHT - AB_HEIGHT//2 - self.font_btn.size(self.button_text)[1]//2))
 
     def draw_text(self, text, color, rect, font, aa=False, bkg=None):
         y = rect.top
