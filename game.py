@@ -199,10 +199,6 @@ class PolarPizza:
         self.dthetaT = 0
         for i in range(len(dtheta_coeff)):
             self.dthetaT += dtheta_coeff[i] * self.t**i
-        
-        # self.dthetaT += 5 * sym.cos(self.t)
-        # self.dthetaT += 3 * sym.sin(self.t)
-        # self.dthetaT += sym.exp(self.t)
 
     def generate_time_bounds(self):
         num_lower = 0
@@ -353,6 +349,7 @@ class PolarPizza:
                 y = -r * math.sin(theta)
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
                 self.delivery_house_thetas.append(theta)
+        
         if self.units == "meters":
             self.correct_ans = self.calc_distance()
         elif self.units == "houses":
@@ -364,40 +361,40 @@ class PolarPizza:
         for i in range(len(dtheta_coeff)):
             self.dthetaT += dtheta_coeff[i] * self.t**i
 
-    def generate_time_bounds(self):
-        num_lower = 0
-        num_upper = 0
+    # def generate_time_bounds(self):
+    #     num_lower = 0
+    #     num_upper = 0
 
-        low = 0
-        high = 0
-        while low >= high:
-            self.generate_velocity()
+    #     low = 0
+    #     high = 0
+    #     while low >= high:
+    #         self.generate_velocity()
 
-            lower_time = sym.solveset(self.dthetaT - self.initial_pizza_theta, self.t, domain=self.domain)
-            upper_time = sym.solveset(self.dthetaT - self.pizza_max_theta, self.t, domain=self.domain)                
+    #         lower_time = sym.solveset(self.dthetaT - self.initial_pizza_theta, self.t, domain=self.domain)
+    #         upper_time = sym.solveset(self.dthetaT - self.pizza_max_theta, self.t, domain=self.domain)                
 
-            try:
-                lower_time = list(lower_time)
-                upper_time = list(upper_time)
-            except:
-                print("Found an impossible equation to solve... Trying again...")
-                continue
+    #         try:
+    #             lower_time = list(lower_time)
+    #             upper_time = list(upper_time)
+    #         except:
+    #             print("Found an impossible equation to solve... Trying again...")
+    #             continue
 
-            num_lower = len(lower_time)
-            num_upper = len(upper_time)
+    #         num_lower = len(lower_time)
+    #         num_upper = len(upper_time)
 
-            if num_lower > 0 and num_upper > 0:
-                low = float(lower_time[0])
-                high = float(upper_time[0])
+    #         if num_lower > 0 and num_upper > 0:
+    #             low = float(lower_time[0])
+    #             high = float(upper_time[0])
 
-        return low, high
+    #     return low, high
 
     def draw_delivery_path(self):
-        theta = self.initial_pizza_theta
+        theta = 0
         r = 0
         x = 0
         y = 0
-        while theta < self.pizza_max_theta:
+        while theta < self.period:
             r = self.get_r(theta, self.graph_scale_factor)
             x = r * math.cos(theta)
             y = -r * math.sin(theta)
