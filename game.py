@@ -69,6 +69,7 @@ class PolarPizza:
         self.num_frames = 1000
 
         self.define_graph()
+        print("Theta Bounds", self.initial_pizza_theta, self.pizza_max_theta)
         self.equation_string = self.get_equation_string()
         self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
 
@@ -132,8 +133,9 @@ class PolarPizza:
                 self.frame_number += 1
             else:
                 theta = self.initial_pizza_theta
-                r = self.get_r(theta, self.graph_scale_factor)
-                self.pizza_coordinates = (r * math.cos(theta) + AXIS_OFFSET[0], -(r * math.sin(theta)) + AXIS_OFFSET[1])
+                if self.question_index == 0:
+                    r = self.get_r(theta, self.graph_scale_factor)
+                    self.pizza_coordinates = (r * math.cos(theta) + AXIS_OFFSET[0], -(r * math.sin(theta)) + AXIS_OFFSET[1])
                 self.pizza_moving = False
                 self.frame_number = 0
                 
@@ -175,6 +177,10 @@ class PolarPizza:
                 self.correct_ans = -1
                 if self.question_index == 0:
                     self.question_index = 1
+                    
+                    self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
+                    self.questions[1] = self.questions[1].format(self.time_low, self.time_high, self.equation_string)
+
                     self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
                     self.correct_ans_thread.start()
             elif self.button_text == "New Graph":
@@ -248,10 +254,14 @@ class PolarPizza:
         return self.equation_string
 
     def generate_velocity(self):
-        dtheta_coeff = np.random.randint(COEFF_LOWER_BOUND, COEFF_UPPER_BOUND, size=8)
-        self.dthetaT = 0
-        for i in range(len(dtheta_coeff)):
-            self.dthetaT += dtheta_coeff[i] * self.t**i
+        if self.question_index == 0:
+            self.dthetaT = np.random.randint(1, 10)
+        else:
+            dtheta_coeff = np.random.randint(COEFF_LOWER_BOUND, COEFF_UPPER_BOUND, size=8)
+            self.dthetaT = 0
+            for i in range(len(dtheta_coeff)):
+                self.dthetaT += dtheta_coeff[i] * self.t**i
+        print(self.dthetaT)
 
     def generate_time_bounds(self):
         self.info_message = "Generating time bounds..."
@@ -283,23 +293,30 @@ class PolarPizza:
                 low = float(lower_time[0])
                 high = float(upper_time[0]) 
 
-        duration = (high - low) / 2
-        end = np.random.uniform(low + duration / 2, high)
-
         if self.units[self.question_index] == "meters":
             end = high
+        else:
+            duration = (high - low) / 2
+            end = np.random.uniform(low + duration / 2, high)
 
         self.pizza_max_theta = self.theta_equation.subs(self.t, end)
         self.info_message = ""
 
+        self.path_period = abs(self.pizza_max_theta - self.initial_pizza_theta)
+
         self.increment = (end - low) / self.num_frames
+
+        print("Times", low, high, end)
+        print("Thetas", self.initial_pizza_theta, self.pizza_max_theta)
+        print(self.path_period)
 
         return low, high, end
 
     def calc_houses(self):
         count = 0
+        print(self.delivery_house_thetas)
         for point in self.delivery_house_thetas:
-            if point > self.initial_pizza_theta and point < self.pizza_max_theta:
+            if point >= self.initial_pizza_theta and point <= abs(self.initial_pizza_theta + self.path_period):
                 count += 1
         return count
 
@@ -409,7 +426,7 @@ class PolarPizza:
                 self.delivery_house_thetas.append(theta)
 
         elif 'limacon-cos' == self.equation_type or 'limacon-sin' == self.equation_type:
-            key_points = [0, math.pi/2, math.pi, 3*math.pi/2]
+            key_points = [self.initial_pizza_theta, self.initial_pizza_theta + math.pi/2, self.initial_pizza_theta + math.pi, self.initial_pizza_theta + 3*math.pi/2]
             for theta in key_points:
                 r = self.get_r(theta, self.graph_scale_factor)
                 x = r * math.cos(theta)
@@ -418,18 +435,6 @@ class PolarPizza:
                 self.delivery_house_thetas.append(theta)
 
         self.info_message = ""
-
-    def draw_delivery_path(self):
-        theta = 0
-        r = 0
-        x = 0
-        y = 0
-        while theta < self.period:
-            r = self.get_r(theta, self.graph_scale_factor)
-            x = r * math.cos(theta)
-            y = -r * math.sin(theta)
-            pygame.draw.circle(self.screen, PATH_COLOR, (x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]), PATH_STROKE_WIDTH)
-            theta += (1 / DELIVERY_PATH_RESOLUTION)
 
     def draw_houses(self):
         for tip in self.delivery_house_points:
