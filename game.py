@@ -50,7 +50,7 @@ class PolarPizza:
         self.cursor_blink_count = 0
         self.cursor_blink_state = False
         self.over_text_limit = False
-        self.questions = ["Find the minimum distance the pizza has to travel to deliver to all the houses and return home. Round to the nearest whole number.", "Hello jfkjskdjkfjsk"]
+        self.questions = ["Find the minimum distance the pizza has to travel to deliver to all the houses and return home. Round to the nearest whole number.", "Find the number of houses the pizza can travel to in ____ minutes if the velocity it travels at is given by the following equation: _________ "]
         self.units = ["meters", "houses"]
         self.question_index = 0
         self.check_btn_enabled = False
@@ -95,14 +95,11 @@ class PolarPizza:
                 if event.key == pygame.K_BACKSPACE:
                     self.input_text = self.input_text[:-1]
                     self.over_text_limit = False
-                if not self.over_text_limit and (event.key >= pygame.K_0 and event.key <= pygame.K_9 or pygame.K_PERIOD):
+                if not self.over_text_limit and (event.key >= pygame.K_0 and event.key <= pygame.K_9 or pygame.K_PERIOD or pygame.K_MINUS):
                     if str(event.unicode) in "0123456789.":
                         self.input_text += event.unicode
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if self.check_btn_enabled and self.button_hovered:
-                    self.pizza_moving = True
-                    self.pizza_theta = self.initial_pizza_theta
-                    self.time = self.time_low
                     self.check_answer()
 
     def scaling_equation(self, time):
@@ -137,23 +134,24 @@ class PolarPizza:
         pygame.display.update()
 
     def check_answer(self):
-        print("called")
         try:
-            print(self.input_text)
             if self.input_text != "":
                 self.correct_ans_thread.join()
                 ans = int(self.input_text)
             if self.button_text == "Check":
-                if self.units[self.question_index] == "houses":
-                    pass
-                elif self.units[self.question_index] == "meters":
-                    if ans == self.correct_ans:
-                        self.answer_state = "correct"
-                        self.input_enabled = False
+                self.pizza_moving = True
+                self.pizza_theta = self.initial_pizza_theta
+                self.time = self.time_low
+                if ans == self.correct_ans:
+                    self.answer_state = "correct"
+                    self.input_enabled = False
+                    if self.question_index == 0:
                         self.button_text = "Next Question"
                     else:
-                        self.answer_state = "incorrect"
-                        self.input_text = ""
+                        self.button_text = "New Graph"
+                else:
+                    self.answer_state = "incorrect"
+                    self.input_text = ""
             elif self.button_text == "Next Question":
                 self.input_text = ""
                 self.over_text_limit = False
@@ -165,9 +163,8 @@ class PolarPizza:
                     self.question_index = 1
                     self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
                     self.correct_ans_thread.start()
-                else:
-                    self.question_index = 0
-                    self.__init__()
+            elif self.button_text == "New Graph":
+                self.__init__()
         except Exception as e:
             self.info_message = "Invalid input!"
             print(e)
@@ -175,7 +172,7 @@ class PolarPizza:
     def get_correct_ans(self):
         if self.units[self.question_index] == "houses":
             self.info_message = "Calculating max number of houses..."
-            self.correct_ans = 5
+            self.correct_ans = self.calc_houses()
         elif self.units[self.question_index] == "meters":
             self.info_message = "Calculating distance..."
             self.correct_ans = self.calc_distance()
@@ -281,7 +278,7 @@ class PolarPizza:
 
         return low, high, end
 
-    def calculate_answer(self):
+    def calc_houses(self):
         count = 0
         for point in self.delivery_house_thetas:
             if point > self.initial_pizza_theta and point < self.pizza_max_theta:
@@ -429,6 +426,8 @@ class PolarPizza:
         button_width = CHECK_BUTTON_WIDTH
         if self.button_text == "Next Question":
             button_width = 250
+        elif self.button_text == "New Graph":
+            button_width = 200
         self.draw_text(text=self.info_message, color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT - 35, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 75, AB_HEIGHT), aa=True)
         pygame.draw.rect(self.screen, AB_BG_COLOR, (0 + AB_HORIZONTAL_PADDING, HEIGHT - AB_HEIGHT, WIDTH - 2*AB_HORIZONTAL_PADDING, AB_HEIGHT), border_top_left_radius=AB_BORDER_RADIUS, border_top_right_radius=AB_BORDER_RADIUS)
         self.draw_text(text=self.questions[self.question_index], color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT + 25, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 75, AB_HEIGHT), aa=True)
