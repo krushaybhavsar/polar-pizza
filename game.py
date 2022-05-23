@@ -452,9 +452,12 @@ class PolarPizza:
             button_width = 250
         elif self.button_text == "New Graph":
             button_width = 200
-        self.draw_text(text=self.info_message, color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT - 35, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 75, AB_HEIGHT), aa=True)
-        pygame.draw.rect(self.screen, AB_BG_COLOR, (0 + AB_HORIZONTAL_PADDING, HEIGHT - AB_HEIGHT, WIDTH - 2*AB_HORIZONTAL_PADDING, AB_HEIGHT), border_top_left_radius=AB_BORDER_RADIUS, border_top_right_radius=AB_BORDER_RADIUS)
-        self.draw_text(text=self.questions[self.question_index], color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT + 25, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 75, AB_HEIGHT), aa=True)
+        ab_height = AB_HEIGHT 
+        if self.question_index == 1:
+            ab_height = AB_HEIGHT + 30
+        self.draw_text(text=self.info_message, color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - ab_height - 35, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 75, ab_height), aa=True)
+        pygame.draw.rect(self.screen, AB_BG_COLOR, (0 + AB_HORIZONTAL_PADDING, HEIGHT - ab_height, WIDTH - 2*AB_HORIZONTAL_PADDING, ab_height), border_top_left_radius=AB_BORDER_RADIUS, border_top_right_radius=AB_BORDER_RADIUS)
+        self.draw_text(text=self.questions[self.question_index], color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - ab_height + 25, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 110, ab_height), aa=True)
         self.screen.blit(self.font_medium.render("Answer: " + self.input_text + " " + self.units[self.question_index], True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - 50))       
         if self.cursor_blink_count % CURSOR_BLINK_RATE == 0:
             self.cursor_blink_state = not self.cursor_blink_state
@@ -470,7 +473,7 @@ class PolarPizza:
         elif self.answer_state == "incorrect":
             self.screen.blit(self.incorrect_img, icon_coord)
             self.screen.blit(self.font_medium.render("Incorrect! Try again...", True, RED), (icon_coord[0] + 52, HEIGHT - 50))       
-        check_btn_coordinates = (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 40, HEIGHT - AB_HEIGHT//2 - CHECK_BUTTON_HEIGHT//2)
+        check_btn_coordinates = (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 40, HEIGHT - ab_height//2 - CHECK_BUTTON_HEIGHT//2)
         btn_color = CHECK_BUTTON_COLOR
         font_color = CB_FONT_COLOR
         self.button_hovered = check_btn_coordinates[0] < self.mouse_pos[0] < check_btn_coordinates[0] + button_width and check_btn_coordinates[1] < self.mouse_pos[1] < check_btn_coordinates[1] + CHECK_BUTTON_HEIGHT 
@@ -483,7 +486,7 @@ class PolarPizza:
         else:
             self.check_btn_enabled = False
         pygame.draw.rect(self.screen, btn_color, (check_btn_coordinates[0], check_btn_coordinates[1], button_width, CHECK_BUTTON_HEIGHT), border_top_left_radius=CB_BR, border_top_right_radius=CB_BR, border_bottom_left_radius=CB_BR, border_bottom_right_radius=CB_BR)
-        self.screen.blit(self.font_btn.render(self.button_text, True, font_color), (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - button_width + button_width//2 - self.font_btn.size(self.button_text)[0]//2 - 40, HEIGHT - AB_HEIGHT//2 - self.font_btn.size(self.button_text)[1]//2))
+        self.screen.blit(self.font_btn.render(self.button_text, True, font_color), (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - button_width + button_width//2 - self.font_btn.size(self.button_text)[0]//2 - 40, HEIGHT - ab_height//2 - self.font_btn.size(self.button_text)[1]//2))
 
     def draw_text(self, text, color, rect, font, aa=False, bkg=None):
         y = rect.top
