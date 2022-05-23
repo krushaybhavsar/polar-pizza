@@ -19,7 +19,7 @@ class PolarPizza:
         self.loading = True
         self.info_message = ""
         # polar graph
-        self.petal_num = random.randint(4, 4)
+        self.petal_num = random.randint(1, 5)
         self.constants = np.random.randint(1, 10, 2)
         self.equation_type = random.choice(['cos', 'sin', 'limacon-cos', 'limacon-sin'])#, 'lemniscate-cos', 'lemniscate-sin'])
         # self.equation_type = 'sin'
@@ -50,7 +50,7 @@ class PolarPizza:
         self.cursor_blink_count = 0
         self.cursor_blink_state = False
         self.over_text_limit = False
-        self.questions = ["Find the minimum distance the pizza has to travel to deliver to all the houses and return home. Round to the nearest whole number.", "Find the number of houses the pizza can travel to in ____ minutes if the velocity it travels at is given by the following equation: _________ "]
+        self.questions = ["Find the minimum distance the pizza has to travel to deliver to all the houses and return home. Round to the nearest whole number.", "Find the number of houses the pizza can travel from {:.5g} second(s) to {:.5g} second(s) if the velocity it travels at is given by the following equation: {} "]
         self.units = ["meters", "houses"]
         self.question_index = 0
         self.check_btn_enabled = False
@@ -60,22 +60,30 @@ class PolarPizza:
         self.button_text = "Check"
         self.correct_ans = -1
         # equation
+        self.equation_string = ""
         self.t = sym.Symbol('t', real=True, nonnegative=True)
         self.domain = sym.Interval(0, math.inf)
 
         # graphing
         self.steps_scaling_factor = 1
+        self.num_frames = 1000
+
         self.define_graph()
+        self.equation_string = self.get_equation_string()
         self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
+
+        self.questions[1] = self.questions[1].format(self.time_low, self.time_high, self.equation_string)
         
         # answer
         self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
         self.correct_ans_thread.start()
         self.correct_ans = -1
 
+        self.frame_number = 0
+
     def run(self):
         while self.running:
-            if self.state == 'playing':
+            if self.state == 'playing' and self.frame_number <= self.num_frames:
                 self.check_events()
                 self.update()
                 self.draw_screen()
@@ -109,9 +117,10 @@ class PolarPizza:
 
     def update(self):
         if self.pizza_moving:
-            if self.time < self.time_end and self.pizza_theta < self.pizza_max_theta and self.pizza_theta > self.initial_pizza_theta - self.period:
-                self.increment = (self.time_end - self.time_low) / (self.steps_scaling_factor * self.initial_scaling_factor)
-                self.steps_scaling_factor = self.scaling_equation(self.time)#*= 1.0001
+            # if self.time < self.time_end and self.pizza_theta < self.pizza_max_theta and self.pizza_theta > self.initial_pizza_theta - self.period:
+            if self.frame_number < self.num_frames:
+                # self.increment = (self.time_end - self.time_low) / (self.steps_scaling_factor * self.initial_scaling_factor)
+                # self.steps_scaling_factor = self.scaling_equation(self.time)#*= 1.0001
                 theta = sym.integrate(self.dthetaT, (self.t, self.time, self.time + self.increment)) + self.pizza_theta # Need to simply calculate theta by integrating dtheta/dt from time_low to time and adding to initial pizza theta
                 # print(self.steps_scaling_factor, theta)
                 # print(self.time, theta)
@@ -120,9 +129,14 @@ class PolarPizza:
                 self.pizza_theta = theta
                 # self.pizza_theta = self.pizza_theta + (math.pi / 180)
                 self.time += self.increment
+                self.frame_number += 1
             else:
+                theta = self.initial_pizza_theta
+                r = self.get_r(theta, self.graph_scale_factor)
+                self.pizza_coordinates = (r * math.cos(theta) + AXIS_OFFSET[0], -(r * math.sin(theta)) + AXIS_OFFSET[1])
                 self.pizza_moving = False
-
+                self.frame_number = 0
+                
     def draw_screen(self):
         self.screen.blit(self.grass_bg, (0, 0))
         self.draw_delivery_path()
@@ -224,12 +238,14 @@ class PolarPizza:
             
     def get_equation_string(self):
         if 'cos' == self.equation_type or 'sin' == self.equation_type:
-            return f"r = {self.graph_scale_factor}∙{self.equation_type}({self.petal_num}θ)"
+            self.equation_string = f"r = {self.graph_scale_factor}∙{self.equation_type}({self.petal_num}θ)"
         elif 'limacon-cos' == self.equation_type or 'limacon-sin' == self.equation_type:
             if self.equation_sign == 1:
-                return f"r = {self.graph_scale_factor}∙({self.constants[0]} + {self.constants[1]}∙{self.equation_type[-3:]}(θ))"
+                self.equation_string= f"r = {self.graph_scale_factor}∙{self.equation_type}({self.constants[0]}+{self.constants[1]}∙cosθ)"
             else:
-                return f"r = {self.graph_scale_factor}∙({self.constants[0]} - {self.constants[1]}∙{self.equation_type[-3:]}(θ))"
+                self.equation_string = f"r = {self.graph_scale_factor}∙({self.constants[0]} - {self.constants[1]}∙{self.equation_type[-3:]}(θ))"
+
+        return self.equation_string
 
     def generate_velocity(self):
         dtheta_coeff = np.random.randint(COEFF_LOWER_BOUND, COEFF_UPPER_BOUND, size=8)
@@ -270,11 +286,13 @@ class PolarPizza:
         duration = (high - low) / 2
         end = np.random.uniform(low + duration / 2, high)
 
-        if self.units == "meters":
+        if self.units[self.question_index] == "meters":
             end = high
 
         self.pizza_max_theta = self.theta_equation.subs(self.t, end)
         self.info_message = ""
+
+        self.increment = (end - low) / self.num_frames
 
         return low, high, end
 
@@ -308,6 +326,7 @@ class PolarPizza:
                 self.initial_pizza_theta = house_period / 2
                 self.pizza_max_theta = self.initial_pizza_theta + self.period
                 self.initial_scaling_factor = 1000
+                self.num_frames = 1000
             else:
                 self.period = math.pi
                 num_petals = self.petal_num
@@ -315,6 +334,7 @@ class PolarPizza:
                 self.initial_pizza_theta = house_period / 2
                 self.pizza_max_theta = self.initial_pizza_theta + self.period
                 self.initial_scaling_factor = 1000
+                self.num_frames = 1000
 
         if 'sin' == self.equation_type:
             ps = min(WIDTH//2, HEIGHT//2)
@@ -325,6 +345,7 @@ class PolarPizza:
                 self.initial_pizza_theta = 0
                 self.pizza_max_theta = self.initial_pizza_theta + self.period
                 self.initial_scaling_factor = 1000
+                self.num_frames = 1000
             else:
                 self.period = math.pi
                 num_petals = self.petal_num
@@ -332,6 +353,7 @@ class PolarPizza:
                 self.initial_pizza_theta = 0
                 self.pizza_max_theta = self.initial_pizza_theta + self.period
                 self.initial_scaling_factor = 1000
+                self.num_frames = 1000
         
         elif 'limacon-cos' == self.equation_type:
             # y, x-neg, x-pos
@@ -346,6 +368,7 @@ class PolarPizza:
                 ps = min((WIDTH//2) // critical_vals[2], (HEIGHT//2) // critical_vals[0])
             else:
                 ps = min((WIDTH//2) // critical_vals[2], (WIDTH//2) // critical_vals[1], (HEIGHT//2) // critical_vals[0])
+            self.num_frames = 500
 
         elif 'limacon-sin' == self.equation_type:
             # x, y-neg, y-pos
@@ -360,6 +383,7 @@ class PolarPizza:
                 ps = min((HEIGHT//2) // critical_vals[2], (WIDTH//2) // critical_vals[0])
             else:
                 ps = min((HEIGHT//2) // critical_vals[2], (HEIGHT//2) // critical_vals[1], (WIDTH//2) // critical_vals[0])
+            self.num_frames = 500
 
         self.graph_scale_factor = round(0.6 * ps) # scale down to 60% of max size
 
@@ -392,11 +416,6 @@ class PolarPizza:
                 y = -r * math.sin(theta)
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
                 self.delivery_house_thetas.append(theta)
-        
-        if self.units == "meters":
-            self.correct_ans = self.calc_distance()
-        elif self.units == "houses":
-            pass
 
         self.info_message = ""
 
@@ -420,7 +439,7 @@ class PolarPizza:
         self.screen.blit(self.pizza_img, (self.pizza_coordinates[0] + WIDTH//2 - self.pizza_img.get_width()//2, self.pizza_coordinates[1] + HEIGHT//2 - self.pizza_img.get_height()//2))
 
     def draw_delivery_info(self):
-        self.screen.blit(self.font.render(self.get_equation_string(), True, INFO_FONT_COLOR), (40, 30))
+        self.screen.blit(self.font.render(self.equation_string, True, INFO_FONT_COLOR), (40, 30))
 
     def draw_answer_box(self):
         button_width = CHECK_BUTTON_WIDTH
@@ -431,21 +450,21 @@ class PolarPizza:
         self.draw_text(text=self.info_message, color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT - 35, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 75, AB_HEIGHT), aa=True)
         pygame.draw.rect(self.screen, AB_BG_COLOR, (0 + AB_HORIZONTAL_PADDING, HEIGHT - AB_HEIGHT, WIDTH - 2*AB_HORIZONTAL_PADDING, AB_HEIGHT), border_top_left_radius=AB_BORDER_RADIUS, border_top_right_radius=AB_BORDER_RADIUS)
         self.draw_text(text=self.questions[self.question_index], color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - AB_HEIGHT + 25, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 75, AB_HEIGHT), aa=True)
-        self.screen.blit(self.font_medium.render("Answer: " + self.input_text + " " + self.units[self.question_index], True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - 60))       
+        self.screen.blit(self.font_medium.render("Answer: " + self.input_text + " " + self.units[self.question_index], True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - 50))       
         if self.cursor_blink_count % CURSOR_BLINK_RATE == 0:
             self.cursor_blink_state = not self.cursor_blink_state
         self.cursor_blink_count += 1
         if self.cursor_blink_state and self.input_enabled:
-            self.screen.blit(self.font_medium.render('|', True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text)[0] + 36, HEIGHT - 4 - 60))
+            self.screen.blit(self.font_medium.render('|', True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text)[0] + 36, HEIGHT - 4 - 50))
         if self.font_medium.size("Answer: " + self.input_text + " " + self.units[self.question_index])[0] > self.font_small.size(self.questions[self.question_index])[0]:
             self.over_text_limit = True
-        icon_coord = (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text + " " + self.units[self.question_index])[0] + 58, HEIGHT - 60 - 3)
+        icon_coord = (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text + " " + self.units[self.question_index])[0] + 58, HEIGHT - 50 - 3)
         if self.answer_state == "correct":
             self.screen.blit(self.correct_img, icon_coord)
-            self.screen.blit(self.font_medium.render("Correct!", True, GREEN), (icon_coord[0] + 52, HEIGHT - 60))       
+            self.screen.blit(self.font_medium.render("Correct!", True, GREEN), (icon_coord[0] + 52, HEIGHT - 50))       
         elif self.answer_state == "incorrect":
             self.screen.blit(self.incorrect_img, icon_coord)
-            self.screen.blit(self.font_medium.render("Incorrect! Try again...", True, RED), (icon_coord[0] + 52, HEIGHT - 60))       
+            self.screen.blit(self.font_medium.render("Incorrect! Try again...", True, RED), (icon_coord[0] + 52, HEIGHT - 50))       
         check_btn_coordinates = (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 40, HEIGHT - AB_HEIGHT//2 - CHECK_BUTTON_HEIGHT//2)
         btn_color = CHECK_BUTTON_COLOR
         font_color = CB_FONT_COLOR

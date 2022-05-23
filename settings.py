@@ -41,3 +41,4 @@ CB_BR = 10
 # Equation
 COEFF_LOWER_BOUND = -5
 COEFF_UPPER_BOUND = 5
+
