@@ -35,11 +35,11 @@ class PolarPizza:
         self.pizza_max_theta = 2 * math.pi
         # images
         self.grass_bg = pygame.image.load('images/grass.png')
-        self.house_img = pygame.transform.scale(pygame.image.load('images/house.png'), (60, 60))
+        self.house_img = pygame.transform.scale(pygame.image.load('images/house.png'), (62, 62))
         self.pizza_img = pygame.transform.scale(pygame.image.load('images/pizza.png'), (40, 40))
-        self.pizza_shop = pygame.transform.scale(pygame.image.load('images/store.png'), (70, 70))
-        self.correct_img = pygame.transform.scale(pygame.image.load('images/correct.png'), (40, 40))
-        self.incorrect_img = pygame.transform.scale(pygame.image.load('images/incorrect.png'), (40, 40))
+        self.pizza_shop = pygame.transform.scale(pygame.image.load('images/store.png'), (75, 75))
+        self.correct_img = pygame.transform.scale(pygame.image.load('images/correct.png'), (35, 35))
+        self.incorrect_img = pygame.transform.scale(pygame.image.load('images/incorrect.png'), (35, 35))
         # fonts
         self.font = pygame.font.Font("fonts/abel.ttf", 50)
         self.font_medium = pygame.font.Font("fonts/abel.ttf", 32)
@@ -69,11 +69,11 @@ class PolarPizza:
         self.num_frames = 1000
 
         self.define_graph()
-        print("Theta Bounds", self.initial_pizza_theta, self.pizza_max_theta)
+        # print("Theta Bounds", self.initial_pizza_theta, self.pizza_max_theta)
         self.equation_string = self.get_equation_string()
         self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
 
-        self.questions[1] = self.questions[1].format(self.time_low, self.time_high, self.equation_string)
+        self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_high, 3), self.equation_string)
         
         # answer
         self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
@@ -104,12 +104,13 @@ class PolarPizza:
                 if event.key == pygame.K_BACKSPACE:
                     self.input_text = self.input_text[:-1]
                     self.over_text_limit = False
-                if not self.over_text_limit and (event.key >= pygame.K_0 and event.key <= pygame.K_9 or pygame.K_PERIOD or pygame.K_MINUS):
+                if not self.over_text_limit and (event.key >= pygame.K_0 and event.key <= pygame.K_9 or pygame.K_PERIOD):
                     if str(event.unicode) in "0123456789.":
                         self.input_text += event.unicode
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if self.check_btn_enabled and self.button_hovered:
-                    self.check_answer()
+            if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN):
+                if self.check_btn_enabled:
+                    if self.button_hovered or (event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN):
+                        self.check_answer()
 
     def scaling_equation(self, time):
         max_scale_constant = 100
@@ -118,17 +119,11 @@ class PolarPizza:
 
     def update(self):
         if self.pizza_moving:
-            # if self.time < self.time_end and self.pizza_theta < self.pizza_max_theta and self.pizza_theta > self.initial_pizza_theta - self.period:
             if self.frame_number < self.num_frames:
-                # self.increment = (self.time_end - self.time_low) / (self.steps_scaling_factor * self.initial_scaling_factor)
-                # self.steps_scaling_factor = self.scaling_equation(self.time)#*= 1.0001
                 theta = sym.integrate(self.dthetaT, (self.t, self.time, self.time + self.increment)) + self.pizza_theta # Need to simply calculate theta by integrating dtheta/dt from time_low to time and adding to initial pizza theta
-                # print(self.steps_scaling_factor, theta)
-                # print(self.time, theta)
                 r = self.get_r(theta, self.graph_scale_factor)
                 self.pizza_coordinates = (r * math.cos(theta) + AXIS_OFFSET[0], -(r * math.sin(theta)) + AXIS_OFFSET[1])
                 self.pizza_theta = theta
-                # self.pizza_theta = self.pizza_theta + (math.pi / 180)
                 self.time += self.increment
                 self.frame_number += 1
             else:
@@ -156,8 +151,8 @@ class PolarPizza:
                 self.correct_ans_thread.join()
                 ans = int(self.input_text)
             if self.button_text == "Check":
-                self.pizza_moving = True
                 self.pizza_theta = self.initial_pizza_theta
+                self.pizza_moving = True
                 self.time = self.time_low
                 if ans == self.correct_ans:
                     self.answer_state = "correct"
@@ -170,6 +165,7 @@ class PolarPizza:
                     self.answer_state = "incorrect"
                     self.input_text = ""
             elif self.button_text == "Next Question":
+                self.pizza_theta = self.initial_pizza_theta
                 self.input_text = ""
                 self.over_text_limit = False
                 self.answer_state = "none"
@@ -180,7 +176,7 @@ class PolarPizza:
                     self.question_index = 1
                     
                     self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
-                    self.questions[1] = self.questions[1].format(self.time_low, self.time_high, self.equation_string)
+                    self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_high, 3), self.equation_string)
 
                     self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
                     self.correct_ans_thread.start()
@@ -248,7 +244,8 @@ class PolarPizza:
             self.equation_string = f"r = {self.graph_scale_factor}*{self.equation_type}({self.petal_num}n)"
         elif 'limacon-cos' == self.equation_type or 'limacon-sin' == self.equation_type:
             if self.equation_sign == 1:
-                self.equation_string= f"r = {self.graph_scale_factor}*{self.equation_type}({self.constants[0]}+{self.constants[1]}*cosn)"
+                # self.equation_string = f"r = {self.graph_scale_factor}*{self.equation_type}({self.constants[0]}+{self.constants[1]}*cosn)"
+                self.equation_string = f"r = {self.graph_scale_factor}*({self.constants[0]} + {self.constants[1]}*{self.equation_type[-3:]}(n))"
             else:
                 self.equation_string = f"r = {self.graph_scale_factor}*({self.constants[0]} - {self.constants[1]}*{self.equation_type[-3:]}(n))"
 
@@ -262,55 +259,38 @@ class PolarPizza:
             self.dthetaT = 0
             for i in range(len(dtheta_coeff)):
                 self.dthetaT += dtheta_coeff[i] * self.t**i
-        print(self.dthetaT)
 
     def generate_time_bounds(self):
         self.info_message = "Generating time bounds..."
         num_lower = 0
         num_upper = 0
-
         low = 0
         high = 0
-
         while low >= high:
             self.generate_velocity()
-            
             self.theta_equation = sym.integrate(self.dthetaT, self.t)
-
             lower_time = sym.solveset(self.theta_equation - self.initial_pizza_theta, self.t, domain=self.domain)
             upper_time = sym.solveset(self.theta_equation - self.pizza_max_theta, self.t, domain=self.domain)
-
             try:
                 lower_time = list(lower_time)
                 upper_time = list(upper_time)
             except:
                 print("Found an impossible equation to solve... Trying again...")
                 continue
-
             num_lower = len(lower_time)
             num_upper = len(upper_time)
-
             if num_lower > 0 and num_upper > 0:
                 low = float(lower_time[0])
                 high = float(upper_time[0]) 
-
         if self.units[self.question_index] == "meters":
             end = high
         else:
             duration = (high - low) / 2
             end = np.random.uniform(low + duration / 2, high)
-
         self.pizza_max_theta = self.theta_equation.subs(self.t, end)
         self.info_message = ""
-
         self.path_period = abs(self.pizza_max_theta - self.initial_pizza_theta)
-
         self.increment = (end - low) / self.num_frames
-
-        print("Times", low, high, end)
-        print("Thetas", self.initial_pizza_theta, self.pizza_max_theta)
-        print(self.path_period)
-
         return low, high, end
 
     def calc_houses(self):
@@ -406,8 +386,6 @@ class PolarPizza:
         self.graph_scale_factor = round(0.6 * ps) # scale down to 60% of max size
 
         if 'cos' == self.equation_type:
-            # print(house_period)
-            # self.pizza_theta = house_period / 2
             for i in range(num_petals):
                 theta = i * house_period
                 r = self.get_r(theta, self.graph_scale_factor)
@@ -417,7 +395,6 @@ class PolarPizza:
                 self.delivery_house_thetas.append(theta)
 
         elif 'sin' == self.equation_type:
-            # self.pizza_theta = 0
             for i in range(num_petals):
                 theta = i * house_period + house_period / 2
                 r = self.get_r(theta, self.graph_scale_factor)
@@ -464,10 +441,10 @@ class PolarPizza:
             self.cursor_blink_state = not self.cursor_blink_state
         self.cursor_blink_count += 1
         if self.cursor_blink_state and self.input_enabled:
-            self.screen.blit(self.font_medium.render('|', True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text)[0] + 36, HEIGHT - 4 - 60))
+            self.screen.blit(self.font_medium.render('|', True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text)[0] + 36, HEIGHT - 2 - 60))
         if self.font_medium.size("Answer: " + self.input_text + " " + self.units[self.question_index])[0] > self.font_small.size(self.questions[self.question_index])[0]:
             self.over_text_limit = True
-        icon_coord = (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text + " " + self.units[self.question_index])[0] + 58, HEIGHT - 60 - 3)
+        icon_coord = (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text + " " + self.units[self.question_index])[0] + 58, HEIGHT - 58)
         if self.answer_state == "correct":
             self.screen.blit(self.correct_img, icon_coord)
             self.screen.blit(self.font_medium.render("Correct!", True, GREEN), (icon_coord[0] + 52, HEIGHT - 60))       
