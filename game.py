@@ -24,6 +24,11 @@ class PolarPizza:
         self.equation_type = random.choice(['cos', 'sin', 'limacon-cos', 'limacon-sin'])#, 'lemniscate-cos', 'lemniscate-sin'])
         # self.equation_type = 'sin'
         self.equation_sign = np.random.choice([-1, 1])
+
+        # self.equation_sign=-1
+        # self.equation_type='limacon-cos'
+        # self.constants=[7, 5]
+
         self.graph_scale_factor = MAX_PATH_SCALE
         self.delivery_house_points = []
         self.delivery_house_thetas = []
@@ -73,7 +78,7 @@ class PolarPizza:
         self.equation_string = self.get_equation_string()
         self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
 
-        self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_high, 3), self.equation_string)
+        self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_end, 3), self.equation_string)
         
         # answer
         self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
@@ -176,7 +181,9 @@ class PolarPizza:
                     self.question_index = 1
                     
                     self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
-                    self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_high, 3), self.equation_string)
+                    self.questions[1] = "Find the number of houses the pizza can travel from {:.5g} second(s) to {:.5g} second(s) if the velocity it travels at is given by the following equation: {}"
+                    self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_end, 3), self.dthetaT)
+                    print(self.questions[1])
 
                     self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
                     self.correct_ans_thread.start()
@@ -251,11 +258,14 @@ class PolarPizza:
 
         return self.equation_string
 
+    # def get_velocity_string(self):
+
+
     def generate_velocity(self):
         if self.question_index == 0:
             self.dthetaT = np.random.randint(1, 10)
         else:
-            dtheta_coeff = np.random.randint(COEFF_LOWER_BOUND, COEFF_UPPER_BOUND, size=8)
+            dtheta_coeff = np.random.randint(COEFF_LOWER_BOUND, COEFF_UPPER_BOUND, size=3)
             self.dthetaT = 0
             for i in range(len(dtheta_coeff)):
                 self.dthetaT += dtheta_coeff[i] * self.t**i
@@ -286,11 +296,16 @@ class PolarPizza:
             end = high
         else:
             duration = (high - low) / 2
-            end = np.random.uniform(low + duration / 2, high)
+            end = np.random.uniform(high - duration / 2, high)
         self.pizza_max_theta = self.theta_equation.subs(self.t, end)
         self.info_message = ""
         self.path_period = abs(self.pizza_max_theta - self.initial_pizza_theta)
         self.increment = (end - low) / self.num_frames
+
+        print("Times", low, high, end)
+        print("Thetas", self.initial_pizza_theta, self.pizza_max_theta)
+        print(self.path_period)
+
         return low, high, end
 
     def calc_houses(self):
