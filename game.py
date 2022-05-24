@@ -35,16 +35,16 @@ class PolarPizza:
         self.pizza_max_theta = 2 * math.pi
         # images
         self.grass_bg = pygame.image.load('images/grass.png')
-        self.house_img = pygame.transform.scale(pygame.image.load('images/house2.png'), (60, 60))
+        self.house_img = pygame.transform.scale(pygame.image.load('images/house.png'), (60, 60))
         self.pizza_img = pygame.transform.scale(pygame.image.load('images/pizza.png'), (40, 40))
         self.pizza_shop = pygame.transform.scale(pygame.image.load('images/store.png'), (70, 70))
         self.correct_img = pygame.transform.scale(pygame.image.load('images/correct.png'), (40, 40))
         self.incorrect_img = pygame.transform.scale(pygame.image.load('images/incorrect.png'), (40, 40))
         # fonts
-        self.font = pygame.font.Font("fonts/roboto.ttf", 40)
-        self.font_medium = pygame.font.Font("fonts/roboto.ttf", 32)
-        self.font_small = pygame.font.Font("fonts/roboto.ttf", 28)
-        self.font_btn = pygame.font.Font("fonts/roboto.ttf", 32)
+        self.font = pygame.font.Font("fonts/abel.ttf", 50)
+        self.font_medium = pygame.font.Font("fonts/abel.ttf", 32)
+        self.font_small = pygame.font.Font("fonts/abel.ttf", 28)
+        self.font_btn = pygame.font.Font("fonts/abel.ttf", 32)
         # answer box
         self.input_text = ""
         self.cursor_blink_count = 0
@@ -245,12 +245,12 @@ class PolarPizza:
             
     def get_equation_string(self):
         if 'cos' == self.equation_type or 'sin' == self.equation_type:
-            self.equation_string = f"r = {self.graph_scale_factor}∙{self.equation_type}({self.petal_num}θ)"
+            self.equation_string = f"r = {self.graph_scale_factor}*{self.equation_type}({self.petal_num}n)"
         elif 'limacon-cos' == self.equation_type or 'limacon-sin' == self.equation_type:
             if self.equation_sign == 1:
-                self.equation_string= f"r = {self.graph_scale_factor}∙{self.equation_type}({self.constants[0]}+{self.constants[1]}∙cosθ)"
+                self.equation_string= f"r = {self.graph_scale_factor}*{self.equation_type}({self.constants[0]}+{self.constants[1]}*cosn)"
             else:
-                self.equation_string = f"r = {self.graph_scale_factor}∙({self.constants[0]} - {self.constants[1]}∙{self.equation_type[-3:]}(θ))"
+                self.equation_string = f"r = {self.graph_scale_factor}*({self.constants[0]} - {self.constants[1]}*{self.equation_type[-3:]}(n))"
 
         return self.equation_string
 
@@ -456,24 +456,24 @@ class PolarPizza:
         ab_height = AB_HEIGHT 
         if self.question_index == 1:
             ab_height = AB_HEIGHT + 30
-        self.draw_text(text=self.info_message, color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - ab_height - 35, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 75, ab_height), aa=True)
+        self.draw_text(text=self.info_message, color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - ab_height - 42, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 75, ab_height), aa=True)
         pygame.draw.rect(self.screen, AB_BG_COLOR, (0 + AB_HORIZONTAL_PADDING, HEIGHT - ab_height, WIDTH - 2*AB_HORIZONTAL_PADDING, ab_height), border_top_left_radius=AB_BORDER_RADIUS, border_top_right_radius=AB_BORDER_RADIUS)
         self.draw_text(text=self.questions[self.question_index], color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - ab_height + 25, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 110, ab_height), aa=True)
-        self.screen.blit(self.font_medium.render("Answer: " + self.input_text + " " + self.units[self.question_index], True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - 50))       
+        self.screen.blit(self.font_medium.render("Answer: " + self.input_text + " " + self.units[self.question_index], True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - 60))       
         if self.cursor_blink_count % CURSOR_BLINK_RATE == 0:
             self.cursor_blink_state = not self.cursor_blink_state
         self.cursor_blink_count += 1
         if self.cursor_blink_state and self.input_enabled:
-            self.screen.blit(self.font_medium.render('|', True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text)[0] + 36, HEIGHT - 4 - 50))
+            self.screen.blit(self.font_medium.render('|', True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text)[0] + 36, HEIGHT - 4 - 60))
         if self.font_medium.size("Answer: " + self.input_text + " " + self.units[self.question_index])[0] > self.font_small.size(self.questions[self.question_index])[0]:
             self.over_text_limit = True
-        icon_coord = (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text + " " + self.units[self.question_index])[0] + 58, HEIGHT - 50 - 3)
+        icon_coord = (AB_HORIZONTAL_PADDING + self.font_medium.size("Answer: " + self.input_text + " " + self.units[self.question_index])[0] + 58, HEIGHT - 60 - 3)
         if self.answer_state == "correct":
             self.screen.blit(self.correct_img, icon_coord)
-            self.screen.blit(self.font_medium.render("Correct!", True, GREEN), (icon_coord[0] + 52, HEIGHT - 50))       
+            self.screen.blit(self.font_medium.render("Correct!", True, GREEN), (icon_coord[0] + 52, HEIGHT - 60))       
         elif self.answer_state == "incorrect":
             self.screen.blit(self.incorrect_img, icon_coord)
-            self.screen.blit(self.font_medium.render("Incorrect! Try again...", True, RED), (icon_coord[0] + 52, HEIGHT - 50))       
+            self.screen.blit(self.font_medium.render("Incorrect! Try again...", True, RED), (icon_coord[0] + 52, HEIGHT - 60))       
         check_btn_coordinates = (AB_HORIZONTAL_PADDING + WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 40, HEIGHT - ab_height//2 - CHECK_BUTTON_HEIGHT//2)
         btn_color = CHECK_BUTTON_COLOR
         font_color = CB_FONT_COLOR
