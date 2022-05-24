@@ -34,14 +34,14 @@ class PolarPizza:
         self.pizza_moving = False
         self.pizza_max_theta = 2 * math.pi
         # images
-        self.grass_bg = pygame.image.load('images/grass.jpg')
-        self.house_img = pygame.transform.scale(pygame.image.load('images/house.png'), (55, 55))
+        self.grass_bg = pygame.image.load('images/grass.png')
+        self.house_img = pygame.transform.scale(pygame.image.load('images/house2.png'), (60, 60))
         self.pizza_img = pygame.transform.scale(pygame.image.load('images/pizza.png'), (40, 40))
-        self.pizza_shop = pygame.transform.scale(pygame.image.load('images/pizza-shop.png'), (85, 85))
+        self.pizza_shop = pygame.transform.scale(pygame.image.load('images/store.png'), (70, 70))
         self.correct_img = pygame.transform.scale(pygame.image.load('images/correct.png'), (40, 40))
         self.incorrect_img = pygame.transform.scale(pygame.image.load('images/incorrect.png'), (40, 40))
         # fonts
-        self.font = pygame.font.Font("fonts/roboto.ttf", 50)
+        self.font = pygame.font.Font("fonts/roboto.ttf", 40)
         self.font_medium = pygame.font.Font("fonts/roboto.ttf", 32)
         self.font_small = pygame.font.Font("fonts/roboto.ttf", 28)
         self.font_btn = pygame.font.Font("fonts/roboto.ttf", 32)
@@ -141,6 +141,7 @@ class PolarPizza:
                 
     def draw_screen(self):
         self.screen.blit(self.grass_bg, (0, 0))
+        # self.screen.fill((187, 195, 122))
         self.draw_delivery_path()
         self.draw_pizza()
         self.draw_houses()
@@ -477,7 +478,7 @@ class PolarPizza:
         btn_color = CHECK_BUTTON_COLOR
         font_color = CB_FONT_COLOR
         self.button_hovered = check_btn_coordinates[0] < self.mouse_pos[0] < check_btn_coordinates[0] + button_width and check_btn_coordinates[1] < self.mouse_pos[1] < check_btn_coordinates[1] + CHECK_BUTTON_HEIGHT 
-        if self.input_text != "" and not self.pizza_moving:
+        if self.input_text != "":
             self.check_btn_enabled = True
             btn_color = CHECK_BUTTON_ENABLED_COLOR
             font_color = CB_HOVER_FONT_COLOR
