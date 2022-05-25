@@ -4,6 +4,7 @@ import pygame, sys, math, random, threading
 from settings import *
 import numpy as np
 import sympy as sym
+import os, sys
 
 class PolarPizza:
 
@@ -39,17 +40,17 @@ class PolarPizza:
         self.pizza_moving = False
         self.pizza_max_theta = 2 * math.pi
         # images
-        self.grass_bg = pygame.image.load('images/grass.png')
-        self.house_img = pygame.transform.scale(pygame.image.load('images/house.png'), (62, 62))
-        self.pizza_img = pygame.transform.scale(pygame.image.load('images/pizza.png'), (40, 40))
-        self.pizza_shop = pygame.transform.scale(pygame.image.load('images/store.png'), (75, 75))
-        self.correct_img = pygame.transform.scale(pygame.image.load('images/correct.png'), (35, 35))
-        self.incorrect_img = pygame.transform.scale(pygame.image.load('images/incorrect.png'), (35, 35))
+        self.grass_bg = pygame.image.load(self.resource_path('assets/images/grass.png'))
+        self.house_img = pygame.transform.scale(pygame.image.load(self.resource_path('assets/images/house.png')), (62, 62))
+        self.pizza_img = pygame.transform.scale(pygame.image.load(self.resource_path('assets/images/pizza.png')), (40, 40))
+        self.pizza_shop = pygame.transform.scale(pygame.image.load(self.resource_path('assets/images/store.png')), (75, 75))
+        self.correct_img = pygame.transform.scale(pygame.image.load(self.resource_path('assets/images/correct.png')), (35, 35))
+        self.incorrect_img = pygame.transform.scale(pygame.image.load(self.resource_path('assets/images/incorrect.png')), (35, 35))
         # fonts
-        self.font = pygame.font.Font("fonts/abel.ttf", 50)
-        self.font_medium = pygame.font.Font("fonts/abel.ttf", 32)
-        self.font_small = pygame.font.Font("fonts/abel.ttf", 28)
-        self.font_btn = pygame.font.Font("fonts/abel.ttf", 32)
+        self.font = pygame.font.Font(self.resource_path("assets/fonts/abel.ttf"), 50)
+        self.font_medium = pygame.font.Font(self.resource_path("assets/fonts/abel.ttf"), 32)
+        self.font_small = pygame.font.Font(self.resource_path("assets/fonts/abel.ttf"), 28)
+        self.font_btn = pygame.font.Font(self.resource_path("assets/fonts/abel.ttf"), 32)
         # answer box
         self.input_text = ""
         self.cursor_blink_count = 0
@@ -503,6 +504,14 @@ class PolarPizza:
             y += fontHeight + lineSpacing
             text = text[i:]
         return text
+
+    def resource_path(self, relative_path):
+        try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
 
 if __name__ == "__main__":
     pygame.init()
