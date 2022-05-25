@@ -63,7 +63,7 @@ class PolarPizza:
         self.answer_state = "none"
         self.input_enabled = True
         self.button_text = "Check"
-        self.correct_ans = -1
+        self.correct_ans = 0
         # equation
         self.equation_string = ""
         self.t = sym.Symbol('t', real=True, nonnegative=True)
@@ -83,7 +83,7 @@ class PolarPizza:
         # answer
         self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
         self.correct_ans_thread.start()
-        self.correct_ans = -1
+        self.correct_ans = 0
 
         self.frame_number = 0
 
@@ -138,6 +138,24 @@ class PolarPizza:
                     self.pizza_coordinates = (r * math.cos(theta) + AXIS_OFFSET[0], -(r * math.sin(theta)) + AXIS_OFFSET[1])
                 self.pizza_moving = False
                 self.frame_number = 0
+        elif self.pizza_moving==False and self.question_index==1 and self.time < self.time_end:
+            if self.frame_number < self.num_frames:
+                theta = sym.integrate(self.dthetaT, (self.t, self.time, self.time + self.increment)) + self.pizza_theta # Need to simply calculate theta by integrating dtheta/dt from time_low to time and adding to initial pizza theta
+                r = self.get_r(theta, self.graph_scale_factor)
+                self.pizza_coordinates = (r * math.cos(theta) + AXIS_OFFSET[0], -(r * math.sin(theta)) + AXIS_OFFSET[1])
+
+                if len(self.delivery_house_thetas) > 0:
+                    error = abs(theta - np.array(self.delivery_house_thetas))
+                    print(theta, error)
+                    if self.pizza_moving == False and min(error) < 1e-5:
+                        self.correct_ans += 1
+                        print("Answer", self.correct_ans)
+                        index = np.argmin(error)
+                        self.delivery_house_thetas.pop(index)
+
+                self.pizza_theta = theta
+                self.time += self.increment
+                self.frame_number += 1
                 
     def draw_screen(self):
         self.screen.blit(self.grass_bg, (0, 0))
@@ -157,11 +175,12 @@ class PolarPizza:
                 ans = int(self.input_text)
             if self.button_text == "Check":
                 self.pizza_theta = self.initial_pizza_theta
-                self.pizza_moving = True
+                self.pizza_moving = False
                 self.time = self.time_low
                 if ans == self.correct_ans:
                     self.answer_state = "correct"
                     self.input_enabled = False
+                    self.pizza_moving = True
                     if self.question_index == 0:
                         self.button_text = "Next Question"
                     else:
@@ -176,14 +195,15 @@ class PolarPizza:
                 self.answer_state = "none"
                 self.input_enabled = True
                 self.button_text = "Check"
-                self.correct_ans = -1
+                self.correct_ans = 0
                 if self.question_index == 0:
                     self.question_index = 1
                     
                     self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
                     self.questions[1] = "Find the number of houses the pizza can travel from {:.5g} second(s) to {:.5g} second(s) if the velocity it travels at is given by the following equation: {}"
-                    self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_end, 3), self.dthetaT)
+                    self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_end, 3), str(self.dthetaT).replace("**", "^"))
                     print(self.questions[1])
+                    self.pizza_moving = False
 
                     self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
                     self.correct_ans_thread.start()
@@ -196,7 +216,7 @@ class PolarPizza:
     def get_correct_ans(self):
         if self.units[self.question_index] == "houses":
             self.info_message = "Calculating max number of houses..."
-            self.correct_ans = self.calc_houses()
+            # self.correct_ans = self.calc_houses()
         elif self.units[self.question_index] == "meters":
             self.info_message = "Calculating distance..."
             self.correct_ans = self.calc_distance()
@@ -278,7 +298,7 @@ class PolarPizza:
         high = 0
         while low >= high:
             self.generate_velocity()
-            self.theta_equation = sym.integrate(self.dthetaT, self.t)
+            self.theta_equation = sym.integrate(sym.FU['TR11'](self.dthetaT), self.t)
             lower_time = sym.solveset(self.theta_equation - self.initial_pizza_theta, self.t, domain=self.domain)
             upper_time = sym.solveset(self.theta_equation - self.pizza_max_theta, self.t, domain=self.domain)
             try:
@@ -426,6 +446,8 @@ class PolarPizza:
                 y = -r * math.sin(theta)
                 self.delivery_house_points.append((x + WIDTH//2 + AXIS_OFFSET[0], y + HEIGHT//2 + AXIS_OFFSET[1]))
                 self.delivery_house_thetas.append(theta)
+
+        print(self.delivery_house_thetas)
 
         self.info_message = ""
 
