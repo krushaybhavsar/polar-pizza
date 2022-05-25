@@ -171,6 +171,7 @@ class PolarPizza:
                     self.input_text = ""
             elif self.button_text == "Next Question":
                 self.pizza_theta = self.initial_pizza_theta
+                self.pizza_moving = False
                 self.input_text = ""
                 self.over_text_limit = False
                 self.answer_state = "none"
@@ -181,8 +182,8 @@ class PolarPizza:
                     self.question_index = 1
                     
                     self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
-                    self.questions[1] = "Find the number of houses the pizza can travel from {:.5g} second(s) to {:.5g} second(s) if the velocity it travels at is given by the following equation: {}"
-                    self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_end, 3), self.dthetaT)
+                    self.questions[1] = "Find the number of different houses the pizza can travel from {:.5g} second(s) to {:.5g} second(s) if the velocity it travels at is given by the following equation: {}"
+                    self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_end, 3), "dn/dt = " + str(self.dthetaT).replace("**", "^"))
                     print(self.questions[1])
 
                     self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
@@ -339,7 +340,7 @@ class PolarPizza:
                 self.initial_pizza_theta = house_period / 2
                 self.pizza_max_theta = self.initial_pizza_theta + self.period
                 self.initial_scaling_factor = 1000
-                self.num_frames = 1000
+                self.num_frames = 500
             else:
                 self.period = math.pi
                 num_petals = self.petal_num
@@ -347,7 +348,7 @@ class PolarPizza:
                 self.initial_pizza_theta = house_period / 2
                 self.pizza_max_theta = self.initial_pizza_theta + self.period
                 self.initial_scaling_factor = 1000
-                self.num_frames = 1000
+                self.num_frames = 500
 
         if 'sin' == self.equation_type:
             ps = min(WIDTH//2, HEIGHT//2)
@@ -358,7 +359,7 @@ class PolarPizza:
                 self.initial_pizza_theta = 0
                 self.pizza_max_theta = self.initial_pizza_theta + self.period
                 self.initial_scaling_factor = 1000
-                self.num_frames = 1000
+                self.num_frames = 500
             else:
                 self.period = math.pi
                 num_petals = self.petal_num
@@ -366,7 +367,7 @@ class PolarPizza:
                 self.initial_pizza_theta = 0
                 self.pizza_max_theta = self.initial_pizza_theta + self.period
                 self.initial_scaling_factor = 1000
-                self.num_frames = 1000
+                self.num_frames = 500
         
         elif 'limacon-cos' == self.equation_type:
             # y, x-neg, x-pos
@@ -381,7 +382,7 @@ class PolarPizza:
                 ps = min((WIDTH//2) // critical_vals[2], (HEIGHT//2) // critical_vals[0])
             else:
                 ps = min((WIDTH//2) // critical_vals[2], (WIDTH//2) // critical_vals[1], (HEIGHT//2) // critical_vals[0])
-            self.num_frames = 500
+            self.num_frames = 250
 
         elif 'limacon-sin' == self.equation_type:
             # x, y-neg, y-pos
@@ -396,7 +397,7 @@ class PolarPizza:
                 ps = min((HEIGHT//2) // critical_vals[2], (WIDTH//2) // critical_vals[0])
             else:
                 ps = min((HEIGHT//2) // critical_vals[2], (HEIGHT//2) // critical_vals[1], (WIDTH//2) // critical_vals[0])
-            self.num_frames = 500
+            self.num_frames = 250
 
         self.graph_scale_factor = round(0.6 * ps) # scale down to 60% of max size
 
