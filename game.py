@@ -472,7 +472,7 @@ class PolarPizza:
         btn_color = CHECK_BUTTON_COLOR
         font_color = CB_FONT_COLOR
         self.button_hovered = check_btn_coordinates[0] < self.mouse_pos[0] < check_btn_coordinates[0] + button_width and check_btn_coordinates[1] < self.mouse_pos[1] < check_btn_coordinates[1] + CHECK_BUTTON_HEIGHT 
-        if self.input_text != "":
+        if self.input_text != "" and self.info_message == "":
             self.check_btn_enabled = True
             btn_color = CHECK_BUTTON_ENABLED_COLOR
             font_color = CB_HOVER_FONT_COLOR
