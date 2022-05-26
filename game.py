@@ -141,13 +141,13 @@ class PolarPizza:
         elif self.pizza_moving==False and self.question_index==1 and self.time < self.time_end:
             if self.frame_number < self.num_frames:
                 theta = sym.integrate(self.dthetaT, (self.t, self.time, self.time + self.increment)) + self.pizza_theta # Need to simply calculate theta by integrating dtheta/dt from time_low to time and adding to initial pizza theta
-                r = self.get_r(theta, self.graph_scale_factor)
-                self.pizza_coordinates = (r * math.cos(theta) + AXIS_OFFSET[0], -(r * math.sin(theta)) + AXIS_OFFSET[1])
+                # r = self.get_r(theta, self.graph_scale_factor)
+                # self.pizza_coordinates = (r * math.cos(theta) + AXIS_OFFSET[0], -(r * math.sin(theta)) + AXIS_OFFSET[1])
 
                 if len(self.delivery_house_thetas) > 0:
-                    error = abs(theta - np.array(self.delivery_house_thetas))
-                    print(theta, error)
-                    if self.pizza_moving == False and min(error) < 1e-5:
+                    error = [(theta - house_theta) % self.period for house_theta in self.delivery_house_thetas]#abs(abs(theta) - np.array(self.delivery_house_thetas))
+                    print("Moving", self.pizza_moving, self.question_index, "Frame", f"{self.frame_number} / {self.num_frames}", "Time", self.time, theta, error)
+                    if min(error) < 1e-1:
                         self.correct_ans += 1
                         print("Answer", self.correct_ans)
                         index = np.argmin(error)
@@ -156,6 +156,11 @@ class PolarPizza:
                 self.pizza_theta = theta
                 self.time += self.increment
                 self.frame_number += 1
+            else:
+                theta = self.initial_pizza_theta
+                self.pizza_moving = False
+                self.frame_number = 0
+                self.time = self.time_low
                 
     def draw_screen(self):
         self.screen.blit(self.grass_bg, (0, 0))
@@ -169,6 +174,7 @@ class PolarPizza:
         pygame.display.update()
 
     def check_answer(self):
+        print(self.button_text, self.answer_state)
         try:
             if self.input_text != "":
                 self.correct_ans_thread.join()
@@ -204,6 +210,11 @@ class PolarPizza:
                     self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_end, 3), str(self.dthetaT).replace("**", "^"))
                     print(self.questions[1])
                     self.pizza_moving = False
+                    self.time = self.time_low
+                    self.frame_number = 0
+                    r = self.get_r(self.pizza_theta, self.graph_scale_factor)
+                    self.pizza_coordinates = (r * math.cos(self.pizza_theta) + AXIS_OFFSET[0], -(r * math.sin(self.pizza_theta)) + AXIS_OFFSET[1])
+                    print("Starting Theta", self.initial_pizza_theta)
 
                     self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
                     self.correct_ans_thread.start()
@@ -212,6 +223,8 @@ class PolarPizza:
         except Exception as e:
             self.info_message = "Invalid input!"
             print(e)
+
+        print(self.button_text, self.answer_state, self.pizza_moving)
 
     def get_correct_ans(self):
         if self.units[self.question_index] == "houses":
@@ -298,7 +311,7 @@ class PolarPizza:
         high = 0
         while low >= high:
             self.generate_velocity()
-            self.theta_equation = sym.integrate(sym.FU['TR11'](self.dthetaT), self.t)
+            self.theta_equation = sym.integrate(self.dthetaT, self.t)
             lower_time = sym.solveset(self.theta_equation - self.initial_pizza_theta, self.t, domain=self.domain)
             upper_time = sym.solveset(self.theta_equation - self.pizza_max_theta, self.t, domain=self.domain)
             try:
@@ -317,14 +330,21 @@ class PolarPizza:
         else:
             duration = (high - low) / 2
             end = np.random.uniform(high - duration / 2, high)
+        
+        end = high
+
         self.pizza_max_theta = self.theta_equation.subs(self.t, end)
         self.info_message = ""
         self.path_period = abs(self.pizza_max_theta - self.initial_pizza_theta)
+        # self.num_frames = round(self.num_frames * (end - low) / (high - low))
+        print("Frames", self.num_frames)
         self.increment = (end - low) / self.num_frames
 
         print("Times", low, high, end)
         print("Thetas", self.initial_pizza_theta, self.pizza_max_theta)
+        print("Increment", self.increment)
         print(self.path_period)
+        print(self.delivery_house_thetas)
 
         return low, high, end
 
