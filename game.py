@@ -186,6 +186,11 @@ class PolarPizza:
                     self.questions[1] = "Find the number of different houses the pizza can travel from {:.5g} second(s) to {:.5g} second(s) if the velocity it travels at is given by the following equation: {}"
                     self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_end, 3), "dn/dt = " + str(self.dthetaT).replace("**", "^"))
                     print(self.questions[1])
+                    self.time = self.time_low
+                    self.frame_number = 0
+
+                    r = self.get_r(self.pizza_theta, self.graph_scale_factor)
+                    self.pizza_coordinates = (r * math.cos(self.pizza_theta) + AXIS_OFFSET[0], -(r * math.sin(self.pizza_theta)) + AXIS_OFFSET[1])                
 
                     self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
                     self.correct_ans_thread.start()
@@ -313,6 +318,7 @@ class PolarPizza:
     def calc_houses(self):
         count = 0
         print(self.delivery_house_thetas)
+        print("Bounds", self.initial_pizza_theta, self.initial_pizza_theta + self.path_period, self.path_period)
         for point in self.delivery_house_thetas:
             if point >= self.initial_pizza_theta and point <= abs(self.initial_pizza_theta + self.path_period):
                 count += 1
@@ -405,6 +411,8 @@ class PolarPizza:
         if 'cos' == self.equation_type:
             for i in range(num_petals):
                 theta = i * house_period
+                if self.initial_pizza_theta > theta:
+                    theta += self.period
                 r = self.get_r(theta, self.graph_scale_factor)
                 x = r * math.cos(theta)
                 y = -r * math.sin(theta)
@@ -414,6 +422,8 @@ class PolarPizza:
         elif 'sin' == self.equation_type:
             for i in range(num_petals):
                 theta = i * house_period + house_period / 2
+                if self.initial_pizza_theta > theta:
+                    theta += self.period
                 r = self.get_r(theta, self.graph_scale_factor)
                 x = r * math.cos(theta)
                 y = -r * math.sin(theta)
@@ -423,6 +433,8 @@ class PolarPizza:
         elif 'limacon-cos' == self.equation_type or 'limacon-sin' == self.equation_type:
             key_points = [self.initial_pizza_theta, self.initial_pizza_theta + math.pi/2, self.initial_pizza_theta + math.pi, self.initial_pizza_theta + 3*math.pi/2]
             for theta in key_points:
+                if self.initial_pizza_theta > theta:
+                    theta += self.period
                 r = self.get_r(theta, self.graph_scale_factor)
                 x = r * math.cos(theta)
                 y = -r * math.sin(theta)
