@@ -141,8 +141,8 @@ class PolarPizza:
                 self.frame_number = 0
                 
     def draw_screen(self):
-        self.screen.blit(self.grass_bg, (0, 0))
         # self.screen.fill((187, 195, 122))
+        self.screen.blit(self.grass_bg, (0, 0))
         self.draw_delivery_path()
         self.draw_pizza()
         self.draw_houses()
@@ -181,17 +181,13 @@ class PolarPizza:
                 self.correct_ans = -1
                 if self.question_index == 0:
                     self.question_index = 1
-                    
                     self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
                     self.questions[1] = "Find the number of different houses the pizza can travel from {:.5g} second(s) to {:.5g} second(s) if the velocity it travels at is given by the following equation: {}"
                     self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_end, 3), "dn/dt = " + str(self.dthetaT).replace("**", "^"))
-                    print(self.questions[1])
                     self.time = self.time_low
                     self.frame_number = 0
-
                     r = self.get_r(self.pizza_theta, self.graph_scale_factor)
                     self.pizza_coordinates = (r * math.cos(self.pizza_theta) + AXIS_OFFSET[0], -(r * math.sin(self.pizza_theta)) + AXIS_OFFSET[1])                
-
                     self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
                     self.correct_ans_thread.start()
             elif self.button_text == "New Graph":
@@ -258,15 +254,11 @@ class PolarPizza:
             self.equation_string = f"r = {self.graph_scale_factor}*{self.equation_type}({self.petal_num}n)"
         elif 'limacon-cos' == self.equation_type or 'limacon-sin' == self.equation_type:
             if self.equation_sign == 1:
-                # self.equation_string = f"r = {self.graph_scale_factor}*{self.equation_type}({self.constants[0]}+{self.constants[1]}*cosn)"
                 self.equation_string = f"r = {self.graph_scale_factor}*({self.constants[0]} + {self.constants[1]}*{self.equation_type[-3:]}(n))"
             else:
                 self.equation_string = f"r = {self.graph_scale_factor}*({self.constants[0]} - {self.constants[1]}*{self.equation_type[-3:]}(n))"
 
         return self.equation_string
-
-    # def get_velocity_string(self):
-
 
     def generate_velocity(self):
         if self.question_index == 0:
@@ -452,6 +444,10 @@ class PolarPizza:
 
     def draw_delivery_info(self):
         self.screen.blit(self.font.render(self.equation_string, True, INFO_FONT_COLOR), (40, 30))
+        self.screen.blit(self.font.render("House Locations", True, INFO_FONT_COLOR), (WIDTH - self.font.size("House Locations")[0] - 40, 30))
+        for i in range(len(self.delivery_house_thetas)):
+            ht_text = "House " + str(i + 1) + ": " + str(round(self.delivery_house_thetas[i], 3)) + " radians"
+            self.screen.blit(self.font_medium.render((ht_text), True, INFO_FONT_COLOR), (WIDTH - self.font.size("House Locations")[0] - 40, 90 + i * 36))
 
     def draw_answer_box(self):
         button_width = CHECK_BUTTON_WIDTH
