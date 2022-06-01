@@ -5,6 +5,7 @@ from settings import *
 import numpy as np
 import sympy as sym
 import os, sys
+import time
 
 class PolarPizza:
 
@@ -97,6 +98,7 @@ class PolarPizza:
             else:
                 self.running = False
             self.clock.tick(FPS)
+            # time.sleep(1/FPS)
         pygame.quit()
         sys.exit()
     
@@ -294,7 +296,7 @@ class PolarPizza:
         if self.units[self.question_index] == "meters":
             end = high
         else:
-            duration = (high - low) / 2
+            duration = high - low
             end = np.random.uniform(high - duration / 2, high)
         self.pizza_max_theta = self.theta_equation.subs(self.t, end)
         self.info_message = ""
@@ -381,7 +383,7 @@ class PolarPizza:
                 ps = min((WIDTH//2) // critical_vals[2], (HEIGHT//2) // critical_vals[0])
             else:
                 ps = min((WIDTH//2) // critical_vals[2], (WIDTH//2) // critical_vals[1], (HEIGHT//2) // critical_vals[0])
-            self.num_frames = 250
+            self.num_frames = 500
 
         elif 'limacon-sin' == self.equation_type:
             # x, y-neg, y-pos
@@ -396,9 +398,10 @@ class PolarPizza:
                 ps = min((HEIGHT//2) // critical_vals[2], (WIDTH//2) // critical_vals[0])
             else:
                 ps = min((HEIGHT//2) // critical_vals[2], (HEIGHT//2) // critical_vals[1], (WIDTH//2) // critical_vals[0])
-            self.num_frames = 250
+            self.num_frames = 500
 
         self.graph_scale_factor = round(0.6 * ps) # scale down to 60% of max size
+        # self.num_frames *= 2
 
         if 'cos' == self.equation_type:
             for i in range(num_petals):
