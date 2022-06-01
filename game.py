@@ -383,7 +383,7 @@ class PolarPizza:
                 ps = min((WIDTH//2) // critical_vals[2], (HEIGHT//2) // critical_vals[0])
             else:
                 ps = min((WIDTH//2) // critical_vals[2], (WIDTH//2) // critical_vals[1], (HEIGHT//2) // critical_vals[0])
-            self.num_frames = 500
+            self.num_frames = 250
 
         elif 'limacon-sin' == self.equation_type:
             # x, y-neg, y-pos
@@ -398,7 +398,7 @@ class PolarPizza:
                 ps = min((HEIGHT//2) // critical_vals[2], (WIDTH//2) // critical_vals[0])
             else:
                 ps = min((HEIGHT//2) // critical_vals[2], (HEIGHT//2) // critical_vals[1], (WIDTH//2) // critical_vals[0])
-            self.num_frames = 500
+            self.num_frames = 250
 
         self.graph_scale_factor = round(0.6 * ps) # scale down to 60% of max size
         # self.num_frames *= 2
