@@ -1,7 +1,7 @@
 
 # Screen
 WIDTH, HEIGHT = 1280, 960
-FPS = 2400
+FPS = 60
 
 # Game
 KEY_HOLD_TIME = 10
