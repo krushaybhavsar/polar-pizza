@@ -81,7 +81,7 @@ class PolarPizza:
         self.equation_string = self.get_equation_string()
         self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
 
-        self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_end, 3), self.equation_string)
+        # self.questions[1] = self.questions[1].format(round(self.time_low, 3), round(self.time_end, 3), self.equation_string)
         
         # answer
         self.correct_ans_thread = threading.Thread(target=self.get_correct_ans)
@@ -182,10 +182,11 @@ class PolarPizza:
                 self.input_enabled = True
                 self.button_text = "Check"
                 self.correct_ans = -1
-                if self.question_index == 0:
+                if self.question_index == 0 or self.question_index == 1:
                     self.question_index += 1
                     self.time_low, self.time_high, self.time_end = self.generate_time_bounds()
-                    self.questions[self.question_index] = self.questions[self.question_index].format(round(self.time_low, 3), round(self.time_end, 3), "dn/dt = " + str(self.dthetaT).replace("**", "^"))
+                    print(self.dthetaT)
+                    self.questions[self.question_index] = self.questions[self.question_index].format(round(self.time_low, 6), round(self.time_end, 6), "dn/dt = " + str(self.dthetaT).replace("**", "^"))
                     self.time = self.time_low
                     self.frame_number = 0
                     r = self.get_r(self.pizza_theta, self.graph_scale_factor)
@@ -301,6 +302,7 @@ class PolarPizza:
         else:
             duration = high - low
             end = np.random.uniform(high - duration / 2, high)
+
         self.pizza_max_theta = self.theta_equation.subs(self.t, end)
         self.info_message = ""
         self.path_period = abs(self.pizza_max_theta - self.initial_pizza_theta)
@@ -404,7 +406,6 @@ class PolarPizza:
             self.num_frames = 250
 
         self.graph_scale_factor = round(0.6 * ps) # scale down to 60% of max size
-        # self.num_frames *= 2
 
         if 'cos' == self.equation_type:
             for i in range(num_petals):
@@ -464,7 +465,7 @@ class PolarPizza:
         self.screen.blit(self.font.render(self.equation_string, True, INFO_FONT_COLOR), (40, 30))
         self.screen.blit(self.font.render("House Locations", True, INFO_FONT_COLOR), (WIDTH - self.font.size("House Locations")[0] - 40, 30))
         for i in range(len(self.delivery_house_thetas)):
-            ht_text = "House " + str(i + 1) + ": " + str(round(self.delivery_house_thetas[i], 3)) + " radians"
+            ht_text = "House " + str(i + 1) + ": " + str(round(self.delivery_house_thetas[i], 6)) + " radians"
             self.screen.blit(self.font_medium.render((ht_text), True, INFO_FONT_COLOR), (WIDTH - self.font.size("House Locations")[0] - 40, 90 + i * 36))
 
     def draw_answer_box(self):
@@ -477,7 +478,7 @@ class PolarPizza:
         if self.question_index == 1:
             ab_height = AB_HEIGHT + 30
         self.draw_text(text=self.info_message, color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - ab_height - 42, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 75, ab_height), aa=True)
-        self.screen.blit(self.font_medium.render("Initial n: " + str(round(self.initial_pizza_theta, 3)) + " radians", True, INFO_FONT_COLOR), (WIDTH - self.font.size("House Locations")[0] - 40, HEIGHT - ab_height - 47))
+        self.screen.blit(self.font_medium.render("Initial n: " + str(round(self.initial_pizza_theta, 6)) + " radians", True, INFO_FONT_COLOR), (WIDTH - self.font.size("House Locations")[0] - 40, HEIGHT - ab_height - 47))
         pygame.draw.rect(self.screen, AB_BG_COLOR, (0 + AB_HORIZONTAL_PADDING, HEIGHT - ab_height, WIDTH - 2*AB_HORIZONTAL_PADDING, ab_height), border_top_left_radius=AB_BORDER_RADIUS, border_top_right_radius=AB_BORDER_RADIUS)
         self.draw_text(text=self.questions[self.question_index], color=INFO_FONT_COLOR, font=self.font_small, rect=pygame.Rect(AB_HORIZONTAL_PADDING + 40, HEIGHT - ab_height + 25, WIDTH - 2*AB_HORIZONTAL_PADDING - button_width - 110, ab_height), aa=True)
         self.screen.blit(self.font_medium.render("Answer: " + self.input_text + " " + self.units[self.question_index], True, INFO_FONT_COLOR), (AB_HORIZONTAL_PADDING + 40, HEIGHT - 60))       
